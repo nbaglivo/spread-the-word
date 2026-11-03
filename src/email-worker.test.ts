@@ -259,8 +259,9 @@ test('a mailer bug inside one row is contained', async () => {
   assert.equal(mailer.sent.length, 1)
 })
 
-test('a store failure inside one row backs it off instead of retrying every tick', async () => {
-  const { deps, store, mailer, subscribe, publish, rows } = setup()
+test('a mail that was sent but not recorded is marked failed and never resent', async () => {
+  const logs = await captureLogs()
+  const { deps, store, mailer, subscribe, publish, rows, advance } = setup()
   subscribe('a@example.com')
   subscribe('b@example.com')
   publish(entry('p'))
@@ -272,13 +273,32 @@ test('a store failure inside one row backs it off instead of retrying every tick
   }
   const worker = new EmailWorker(deps)
   await worker.tick()
+  advance(24 * 3_600_000)
   assert.equal(await worker.tick(), 0)
   assert.deepEqual(mailer.sent.map((m) => m.to), ['a@example.com', 'b@example.com'])
   const [a, b] = rows()
-  assert.equal(a.status, 'queued')
+  assert.equal(a.status, 'failed')
   assert.equal(a.attempts, 1)
-  assert.equal(a.next_attempt_at, new Date(START.getTime() + 60_000).toISOString())
+  assert.equal(a.last_error, 'sent but not recorded: disk full')
   assert.equal(b.status, 'sent')
+  assert.ok(logs.lines('warmhole.email').some((l) => l.includes('was sent but not recorded: disk full')))
+})
+
+test('a mail that was sent but cannot be marked failed either is only logged', async () => {
+  const logs = await captureLogs()
+  const { deps, store, mailer, subscribe, publish } = setup()
+  subscribe('a@example.com')
+  publish(entry('p'))
+  store.markDeliverySent = () => {
+    throw new Error('disk full')
+  }
+  store.markDeliveryFailed = () => {
+    throw new Error('still full')
+  }
+  const worker = new EmailWorker(deps)
+  await worker.tick()
+  assert.equal(mailer.sent.length, 1)
+  assert.ok(logs.lines('warmhole.email').some((l) => l.includes('could not mark delivery') && l.includes('still full')))
 })
 
 test('overlapping ticks share one pass', async () => {

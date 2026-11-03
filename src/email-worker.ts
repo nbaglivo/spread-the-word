@@ -88,6 +88,20 @@ export class EmailWorker {
     }
   }
 
+  private markUnrecorded(delivery: EmailDelivery, error: unknown): void {
+    const reason = error instanceof Error ? error.message : String(error)
+    logger.error('{site}: delivery {id} was sent but not recorded: {reason}', { site: delivery.siteId, id: delivery.id, reason })
+    try {
+      this.deps.store.markDeliveryFailed(delivery.id, delivery.attempts + 1, `sent but not recorded: ${reason}`)
+    } catch (inner) {
+      logger.error('{site}: could not mark delivery {id} as failed: {reason}', {
+        site: delivery.siteId,
+        id: delivery.id,
+        reason: inner instanceof Error ? inner.message : String(inner),
+      })
+    }
+  }
+
   private async deliver(delivery: EmailDelivery, beforeSend: () => Promise<void>): Promise<void> {
     const { config, store, mailer } = this.deps
     const subscriber = store.getSubscriberById(delivery.subscriberId)
@@ -135,7 +149,12 @@ export class EmailWorker {
       }
       return
     }
-    store.markDeliverySent(delivery.id, this.now())
+    try {
+      store.markDeliverySent(delivery.id, this.now())
+    } catch (error) {
+      this.markUnrecorded(delivery, error)
+      return
+    }
     logger.info('{site}: emailed {post} to {recipient}', { site: site.id, post: post.slug, recipient })
   }
 
