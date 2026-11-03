@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { MemoryKvStore } from '@fedify/fedify'
 import { Store } from './store.ts'
 import { buildFederation } from './federation.ts'
+import type { Federation } from '@fedify/fedify'
 import { Syncer, UnknownSiteError } from './sync.ts'
 import { FeedError, type FeedEntry } from './feed.ts'
 import { GuardError } from './diff.ts'
@@ -36,11 +37,11 @@ test('first sync stores silently, then new posts are delivered', async () => {
   const start = remote.deliveries.length
 
   setFeed([entry('a'), entry('b')])
-  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 2, updated: 0, deleted: 0 })
+  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 2, updated: 0, deleted: 0, emails: 0 })
   assert.deepEqual(deliveredTypes(start), [])
 
   setFeed([entry('a'), entry('b'), entry('c')])
-  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 1, updated: 0, deleted: 0 })
+  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 1, updated: 0, deleted: 0, emails: 0 })
   const delivered = remote.deliveries.slice(start)
   assert.deepEqual(delivered.map((d) => d.type), ['Create'])
   assert.equal(delivered[0].path, '/inbox')
@@ -52,7 +53,7 @@ test('re-sync with nothing new returns zeros and sends nothing', async () => {
   setFeed([entry('a')])
   await syncer.sync('inner-monologue')
   const start = remote.deliveries.length
-  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 0, deleted: 0 })
+  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 0, deleted: 0, emails: 0 })
   assert.deepEqual(deliveredTypes(start), [])
 })
 
@@ -63,7 +64,7 @@ test('edits send Update and removals send Delete', async () => {
   const start = remote.deliveries.length
 
   setFeed([entry('a', { title: 'Edited' }), entry('b')])
-  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 1, deleted: 1 })
+  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 1, deleted: 1, emails: 0 })
   assert.deepEqual(deliveredTypes(start).sort(), ['Delete', 'Update'])
 })
 
@@ -100,7 +101,7 @@ test('pending activities left by a crash are sent on the next sync', async () =>
   const start = remote.deliveries.length
 
   setFeed([entry('a'), entry('z')])
-  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 0, deleted: 0 })
+  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 0, deleted: 0, emails: 0 })
   assert.deepEqual(deliveredTypes(start), ['Create'])
   assert.deepEqual(store.listPending('inner-monologue'), [])
 })
@@ -137,6 +138,70 @@ test('each sync logs one line with what changed', async () => {
   await syncer.sync('inner-monologue')
   assert.deepEqual(logs.lines('warmhole.sync'), [
     'first sync of inner-monologue stored 2 posts without sending them',
-    'synced inner-monologue: 1 new, 1 updated, 0 deleted',
+    'synced inner-monologue: 1 new, 1 updated, 0 deleted, 0 emails',
   ])
+})
+
+function subscribe(store: Store, n: number) {
+  for (let i = 0; i < n; i++) {
+    const hash = `hash${i}`
+    store.savePendingSubscriber('inner-monologue', `s${i}@example.com`, {
+      confirmTokenHash: hash,
+      confirmExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      confirmSentAt: new Date().toISOString(),
+      unsubscribeToken: `unsub${i}`,
+    })
+    store.confirmSubscriber('inner-monologue', hash, new Date())
+  }
+}
+
+test('new posts queue emails and report them', async () => {
+  const logs = await captureLogs()
+  const { store, syncer, setFeed } = setup()
+  subscribe(store, 2)
+  setFeed([entry('a')])
+  await syncer.sync('inner-monologue')
+  setFeed([entry('a'), entry('b')])
+  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 1, updated: 0, deleted: 0, emails: 2 })
+  assert.deepEqual(logs.lines('warmhole.email'), ['inner-monologue: emailing "Title b" to 2 subscribers'])
+})
+
+test('edits and re-syncs queue no emails', async () => {
+  const { store, syncer, setFeed } = setup()
+  subscribe(store, 2)
+  setFeed([entry('a')])
+  await syncer.sync('inner-monologue')
+  setFeed([entry('a', { title: 'Edited' })])
+  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 1, deleted: 0, emails: 0 })
+  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 0, deleted: 0, emails: 0 })
+  assert.equal(store.listDueDeliveries(new Date(Date.now() + 1000), 10).length, 0)
+})
+
+test('fediverse hand-off failing still leaves emails queued', async () => {
+  const logs = await captureLogs()
+  const { store, syncer, setFeed } = setup()
+  subscribe(store, 2)
+  setFeed([entry('a')])
+  await syncer.sync('inner-monologue')
+  setFeed([entry('a'), entry('b')])
+
+  const real = syncer.deps.federation
+  const broken = {
+    createContext: (...args: Parameters<Federation<void>['createContext']>) => {
+      const ctx = real.createContext(...args)
+      ctx.sendActivity = async () => {
+        throw new Error('fedi down')
+      }
+      return ctx
+    },
+  } as unknown as Federation<void>
+  const failing = new Syncer({ ...syncer.deps, federation: broken })
+  await assert.rejects(failing.sync('inner-monologue'), /fedi down/)
+
+  const later = new Date(Date.now() + 1000)
+  assert.equal(store.listDueDeliveries(later, 10).length, 2)
+  assert.deepEqual(logs.lines('warmhole.email'), ['inner-monologue: emailing "Title b" to 2 subscribers'])
+
+  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 0, deleted: 0, emails: 0 })
+  assert.equal(store.listDueDeliveries(later, 10).length, 2)
 })
