@@ -16,6 +16,20 @@ test('isEmailAddress rejects malformed addresses', () => {
   }
 })
 
+test('isEmailAddress rejects separators nodemailer would parse as lists, groups or comments', () => {
+  for (const bad of ['a,b@x.com', 'list:victim@x.com', 'victim(c)@x.com', 'a;b@x.com', '"a"@x.com', '.a@x.com', 'a.@x.com', 'a..b@x.com']) {
+    assert.equal(isEmailAddress(bad), false, bad)
+  }
+})
+
+test('isEmailAddress allows exactly 254 characters', () => {
+  const domain = `${'d'.repeat(61)}.${'d'.repeat(61)}.${'d'.repeat(61)}.com`
+  const at = (total: number) => `${'a'.repeat(total - domain.length - 1)}@${domain}`
+  assert.equal(at(254).length, 254)
+  assert.equal(isEmailAddress(at(254)), true)
+  assert.equal(isEmailAddress(at(255)), false)
+})
+
 test('maskEmail hides all but the first character of the local part', () => {
   assert.equal(maskEmail('nico@gmail.com'), 'n***@gmail.com')
   assert.equal(maskEmail('n@x.dev'), 'n***@x.dev')
