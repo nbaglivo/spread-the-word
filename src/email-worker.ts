@@ -26,8 +26,9 @@ export class EmailWorker {
   private sleep: (ms: number) => Promise<void>
   private lastCleanup: number | null = null
   private timer: NodeJS.Timeout | null = null
-  private running: Promise<unknown> | null = null
-  private stopped = true
+  private inflight: Promise<number> | null = null
+  private generation = 0
+  private started = false
 
   constructor(deps: EmailWorkerDeps) {
     this.deps = deps
@@ -35,7 +36,14 @@ export class EmailWorker {
     this.sleep = deps.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
   }
 
-  async tick(): Promise<number> {
+  tick(): Promise<number> {
+    this.inflight ??= this.runTick().finally(() => {
+      this.inflight = null
+    })
+    return this.inflight
+  }
+
+  private async runTick(): Promise<number> {
     const { store, config } = this.deps
     const now = this.now()
     if (this.lastCleanup === null || now.getTime() - this.lastCleanup >= CLEANUP_EVERY_MS) {
@@ -54,14 +62,30 @@ export class EmailWorker {
         }
         await this.deliver(delivery, pause)
       } catch (error) {
-        logger.error('{site}: email worker failed on delivery {id}: {reason}', {
-          site: delivery.siteId,
-          id: delivery.id,
-          reason: error instanceof Error ? error.message : String(error),
-        })
+        this.backOff(delivery, error)
       }
     }
     return due.length
+  }
+
+  private backOff(delivery: EmailDelivery, error: unknown): void {
+    const reason = error instanceof Error ? error.message : String(error)
+    logger.error('{site}: email worker failed on delivery {id}: {reason}', { site: delivery.siteId, id: delivery.id, reason })
+    try {
+      const attempts = delivery.attempts + 1
+      if (attempts > RETRY_DELAYS_MS.length) {
+        this.deps.store.markDeliveryFailed(delivery.id, attempts, reason)
+      } else {
+        const next = new Date(this.now().getTime() + RETRY_DELAYS_MS.at(attempts - 1)!)
+        this.deps.store.markDeliveryRetry(delivery.id, attempts, next, reason)
+      }
+    } catch (inner) {
+      logger.error('{site}: could not back off delivery {id}: {reason}', {
+        site: delivery.siteId,
+        id: delivery.id,
+        reason: inner instanceof Error ? inner.message : String(inner),
+      })
+    }
   }
 
   private async deliver(delivery: EmailDelivery, beforeSend: () => Promise<void>): Promise<void> {
@@ -116,25 +140,27 @@ export class EmailWorker {
   }
 
   start(intervalMs = 5000): void {
-    if (!this.stopped) return
-    this.stopped = false
+    if (this.started) return
+    this.started = true
+    const generation = ++this.generation
     const loop = () => {
       this.timer = setTimeout(async () => {
-        this.running = this.tick().catch((error) => {
+        try {
+          await this.tick()
+        } catch (error) {
           logger.error('email worker tick failed: {reason}', { reason: error instanceof Error ? error.message : String(error) })
-        })
-        await this.running
-        this.running = null
-        if (!this.stopped) loop()
+        }
+        if (generation === this.generation) loop()
       }, intervalMs)
     }
     loop()
   }
 
   async stop(): Promise<void> {
-    this.stopped = true
+    this.started = false
+    this.generation++
     if (this.timer) clearTimeout(this.timer)
     this.timer = null
-    await this.running
+    await this.inflight?.catch(() => {})
   }
 }
