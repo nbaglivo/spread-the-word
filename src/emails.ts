@@ -5,8 +5,8 @@ export type RenderedEmail = { subject: string; html: string; text: string }
 
 const BG = '#faf8f4'
 const INK = '#38352f'
-const SANS = '"IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif'
-const MONO = '"IBM Plex Mono", ui-monospace, Menlo, monospace'
+const SANS = "'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif"
+const MONO = "'IBM Plex Mono', ui-monospace, Menlo, monospace"
 const FONT_BASE = 'https://nbaglivo.dev/public/fonts'
 
 const FONT_FACES = [
