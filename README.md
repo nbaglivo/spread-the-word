@@ -139,6 +139,8 @@ inbox. It works on its own, with or without any fediverse followers.
    `userEnv` and `passwordEnv` name environment variables (`SMTP_USER` and
    `SMTP_PASSWORD` in `.env`). Port 465 uses implicit TLS, any other port
    uses STARTTLS and requires it. The three page URLs must be HTTPS.
+   Two optional `smtp` keys: `port` (default 587) and `pauseMs` (default 1000),
+   the pause between consecutive emails.
 
 2. **Sender domain.** The domain in `from` must be one your SMTP account may
    send for. With Migadu, set up SPF and DKIM for it, or mail lands in spam.
@@ -157,7 +159,9 @@ inbox. It works on its own, with or without any fediverse followers.
    </form>
    ```
 
-   The hidden `website` field is a honeypot for bots.
+   The hidden `website` field is a honeypot for bots. An invalid address
+   redirects to the check-inbox page with `?error=invalid` appended, so that
+   page can show a message.
 
 Subscribing sends a confirmation link; only confirmed addresses get posts.
 Every email carries an unsubscribe link and the one-click unsubscribe button
