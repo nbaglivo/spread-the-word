@@ -121,3 +121,22 @@ describe('pages', () => {
     assert.ok(page.includes('href="https://innermonologue.test/"'))
   })
 })
+
+describe('inline styles', () => {
+  it('never break out of the style attribute', () => {
+    const outputs = [
+      newPostEmail(site, post(), 'https://ap.test/u?token=t').html,
+      confirmationEmail(site, 'https://ap.test/c?token=t').html,
+      expiredLinkPage(site),
+      unsubscribePage(site, 'https://ap.test/u?token=t'),
+    ]
+    for (const html of outputs) {
+      const body = html.slice(html.indexOf('<body'))
+      const opened = body.match(/style="/g)?.length ?? 0
+      const closed = body.match(/style="[^"]*"(?=[\s>/])/g)?.length ?? 0
+      assert.ok(opened > 0)
+      assert.equal(closed, opened)
+      assert.match(body, /<td style="[^"]*font-size:16\.5px/)
+    }
+  })
+})
