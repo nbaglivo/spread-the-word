@@ -29,10 +29,12 @@ const federation = buildFederation({ config, store, kv: new SqliteKvStore(db), q
 federation.startQueue(undefined).catch((error) => logger.error('delivery queue stopped: {error}', { error }))
 
 let subscriptions: Subscriptions | undefined
+let worker: EmailWorker | undefined
 if (config.smtp) {
   const mailer = smtpMailer(config.smtp)
   subscriptions = new Subscriptions({ config, store, mailer })
-  new EmailWorker({ config, store, mailer }).start()
+  worker = new EmailWorker({ config, store, mailer })
+  worker.start()
   const emailLogger = getLogger(['warmhole', 'email'])
   for (const site of config.sites.filter((s) => s.email)) {
     emailLogger.info('{site}: {count} subscribers', { site: site.id, count: store.countConfirmedSubscribers(site.id) })
@@ -44,3 +46,10 @@ const app = buildApp({ config, federation, syncer: new Syncer({ config, store, f
 serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 8080) }, (info) => {
   logger.info('warmhole listening on port {port} for {sites}', { port: info.port, sites: config.sites.map((s) => s.id) })
 })
+
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  process.once(signal, async () => {
+    await worker?.stop()
+    process.exit(0)
+  })
+}
