@@ -106,6 +106,67 @@ With `"deleteMissing": true`, a post that disappears from the feed is deleted
 for followers too. Posts older than the oldest entry in the feed are left
 alone, so feeds that list only the latest posts are safe.
 
+## Email subscriptions
+
+Optional. Readers can also subscribe by email and get each new post in their
+inbox. It works on its own, with or without any fediverse followers.
+
+1. **SMTP.** Add an `smtp` block to `warmhole.json` and, for each site that
+   should send email, an `email` block (see `warmhole.example.json`):
+
+   ```json
+   {
+     "smtp": {
+       "host": "smtp.migadu.com",
+       "port": 587,
+       "userEnv": "SMTP_USER",
+       "passwordEnv": "SMTP_PASSWORD"
+     },
+     "sites": [
+       {
+         "id": "my-blog",
+         "email": {
+           "from": "My Blog <me@blog.example.dev>",
+           "checkInboxUrl": "https://blog.example.dev/subscribe/check-your-inbox/",
+           "confirmedUrl": "https://blog.example.dev/subscribe/confirmed/",
+           "unsubscribedUrl": "https://blog.example.dev/subscribe/unsubscribed/"
+         }
+       }
+     ]
+   }
+   ```
+
+   `userEnv` and `passwordEnv` name environment variables (`SMTP_USER` and
+   `SMTP_PASSWORD` in `.env`). Port 465 uses implicit TLS, any other port
+   uses STARTTLS and requires it. The three page URLs must be HTTPS.
+
+2. **Sender domain.** The domain in `from` must be one your SMTP account may
+   send for. With Migadu, set up SPF and DKIM for it, or mail lands in spam.
+   warmhole doesn't check this.
+
+3. **Three pages on your site.** One telling people to check their inbox, one
+   for a confirmed subscription, one for an unsubscribe.
+
+4. **The form**, pointing at your warmhole:
+
+   ```html
+   <form method="post" action="https://ap.example.dev/sites/my-blog/subscribe">
+     <input type="email" name="email" required placeholder="you@example.com">
+     <input type="text" name="website" tabindex="-1" autocomplete="off" hidden>
+     <button>Subscribe</button>
+   </form>
+   ```
+
+   The hidden `website` field is a honeypot for bots.
+
+Subscribing sends a confirmation link; only confirmed addresses get posts.
+Every email carries an unsubscribe link and the one-click unsubscribe button
+mail apps show.
+
+An email goes out for each new post found by a sync. Edits, deletions and the
+first sync of a site send nothing. Delivery runs in the background with
+retries, so a mail server outage doesn't hold up syncs or federation.
+
 ## Check it works
 
 - `npx @fedify/cli lookup @you@your-site.dev` should show your actor.
@@ -115,7 +176,9 @@ alone, so feeds that list only the latest posts are safe.
 ## Watch what it does
 
 warmhole logs one JSON line per event: each sync and what it found, each
-follow and unfollow, each delivery and any follower it gave up on.
+follow and unfollow, each delivery and any follower it gave up on. With email
+on, it also logs subscribers joining and leaving and each email sent or failed
+(addresses are masked).
 `scripts/logs` reads them over SSH and prints them one short line each:
 
 ```bash
