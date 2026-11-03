@@ -69,7 +69,7 @@ function setup(config: Config = CONFIG) {
     return store.confirmSubscriber(SITE, `hash${n}`, START)!
   }
   function publish(...entries: FeedEntry[]) {
-    return store.applyChanges(SITE, { create: entries, update: [], delete: [], silent: false }, START)
+    return store.applyChanges(SITE, { create: entries, update: [], delete: [], silent: false }, START, { email: true })
   }
   function rows() {
     return store.db.prepare('SELECT * FROM email_deliveries ORDER BY id').all() as Record<string, unknown>[]

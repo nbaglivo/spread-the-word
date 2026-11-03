@@ -51,7 +51,7 @@ export class Syncer {
     const stored = store.listPosts(siteId).map((p) => ({ entryId: p.entryId, contentHash: p.contentHash, deleted: p.deletedAt !== null, published: p.published }))
     const changes = diff(stored, entries, { deleteMissing: site.deleteMissing })
 
-    const emails = store.applyChanges(siteId, changes)
+    const emails = store.applyChanges(siteId, changes, new Date(), { email: Boolean(site.email && config.smtp) })
     if (emails > 0) {
       const count = store.countConfirmedSubscribers(siteId)
       for (const created of changes.create) emailLogger.info('{site}: emailing {title} to {count} subscribers', { site: siteId, title: created.title, count })

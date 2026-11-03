@@ -181,13 +181,20 @@ test('fan-out queues one delivery per confirmed subscriber per new post', () => 
   confirmed(store, 's', 'b@x.dev', 2)
   store.savePendingSubscriber('s', 'c@x.dev', fields(3))
   confirmed(store, 'other', 'd@x.dev', 4)
-  const queued = store.applyChanges('s', { ...none, create: [entry('a'), entry('b')] })
+  const queued = store.applyChanges('s', { ...none, create: [entry('a'), entry('b')] }, new Date(), { email: true })
   assert.equal(queued, 4)
   const due = store.listDueDeliveries(new Date(), 10)
   assert.equal(due.length, 4)
   assert.ok(due.every((d) => d.status === 'queued' && d.attempts === 0 && d.siteId === 's' && d.lastError === null))
   assert.equal(store.getPost('s', entry('a').id)?.slug, 'a')
   assert.equal(store.getPost('s', 'missing'), undefined)
+})
+
+test('fan-out is skipped unless email is enabled', () => {
+  const store = freshStore()
+  confirmed(store, 's', 'a@x.dev', 1)
+  assert.equal(store.applyChanges('s', { ...none, create: [entry('a')] }), 0)
+  assert.equal(store.listDueDeliveries(new Date(), 10).length, 0)
 })
 
 test('silent first sync, updates and deletes queue nothing', () => {
@@ -203,7 +210,7 @@ test('silent first sync, updates and deletes queue nothing', () => {
 test('removeSubscriberByToken deletes the subscriber and its queued deliveries', () => {
   const store = freshStore()
   const sub = confirmed(store, 's', 'a@x.dev', 1)
-  store.applyChanges('s', { ...none, create: [entry('a')] })
+  store.applyChanges('s', { ...none, create: [entry('a')] }, new Date(), { email: true })
   assert.equal(store.removeSubscriberByToken('s', 'nope'), false)
   assert.equal(store.removeSubscriberByToken('s', sub.unsubscribeToken), true)
   assert.equal(store.getSubscriberById(sub.id), undefined)
@@ -215,8 +222,8 @@ test('listDueDeliveries skips future and non-queued rows, ordered by published t
   confirmed(store, 's', 'a@x.dev', 1)
   confirmed(store, 's', 'b@x.dev', 2)
   const now = new Date('2026-11-03T02:00:00Z')
-  store.applyChanges('s', { ...none, create: [entry('late', { published: new Date('2026-10-05T00:00:00Z') })] }, now)
-  store.applyChanges('s', { ...none, create: [entry('early', { published: new Date('2026-10-02T00:00:00Z') })] }, now)
+  store.applyChanges('s', { ...none, create: [entry('late', { published: new Date('2026-10-05T00:00:00Z') })] }, now, { email: true })
+  store.applyChanges('s', { ...none, create: [entry('early', { published: new Date('2026-10-02T00:00:00Z') })] }, now, { email: true })
   const all = store.listDueDeliveries(now, 10)
   assert.deepEqual(all.map((d) => d.entryId), [entry('early').id, entry('early').id, entry('late').id, entry('late').id])
   assert.ok(all[0].id < all[1].id)
