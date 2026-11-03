@@ -1,5 +1,11 @@
 {
   "publicUrl": "https://ap.example.dev",
+  "smtp": {
+    "host": "smtp.migadu.com",
+    "port": 587,
+    "userEnv": "SMTP_USER",
+    "passwordEnv": "SMTP_PASSWORD"
+  },
   "sites": [
     {
       "id": "my-blog",
@@ -10,7 +16,13 @@
       "summary": "Things I write.",
       "icon": "https://blog.example.dev/avatar.png",
       "syncTokenEnv": "MY_BLOG_SYNC_TOKEN",
-      "deleteMissing": false
+      "deleteMissing": false,
+      "email": {
+        "from": "My Blog <me@blog.example.dev>",
+        "checkInboxUrl": "https://blog.example.dev/subscribe/check-your-inbox/",
+        "confirmedUrl": "https://blog.example.dev/subscribe/confirmed/",
+        "unsubscribedUrl": "https://blog.example.dev/subscribe/unsubscribed/"
+      }
     }
   ]
 }

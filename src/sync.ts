@@ -54,7 +54,7 @@ export class Syncer {
     const emails = store.applyChanges(siteId, changes)
     if (emails > 0) {
       const count = store.countConfirmedSubscribers(siteId)
-      for (const created of changes.create) emailLogger.info('{site}: emailing "{title}" to {count} subscribers', { site: siteId, title: created.title, count })
+      for (const created of changes.create) emailLogger.info('{site}: emailing {title} to {count} subscribers', { site: siteId, title: created.title, count })
     }
     await this.flushPending(siteId)
 

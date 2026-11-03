@@ -163,7 +163,7 @@ test('new posts queue emails and report them', async () => {
   await syncer.sync('inner-monologue')
   setFeed([entry('a'), entry('b')])
   assert.deepEqual(await syncer.sync('inner-monologue'), { new: 1, updated: 0, deleted: 0, emails: 2 })
-  assert.deepEqual(logs.lines('warmhole.email'), ['inner-monologue: emailing "Title b" to 2 subscribers'])
+  assert.deepEqual(logs.lines('warmhole.email'), ['inner-monologue: emailing Title b to 2 subscribers'])
 })
 
 test('edits and re-syncs queue no emails', async () => {
@@ -200,7 +200,7 @@ test('fediverse hand-off failing still leaves emails queued', async () => {
 
   const later = new Date(Date.now() + 1000)
   assert.equal(store.listDueDeliveries(later, 10).length, 2)
-  assert.deepEqual(logs.lines('warmhole.email'), ['inner-monologue: emailing "Title b" to 2 subscribers'])
+  assert.deepEqual(logs.lines('warmhole.email'), ['inner-monologue: emailing Title b to 2 subscribers'])
 
   assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 0, deleted: 0, emails: 0 })
   assert.equal(store.listDueDeliveries(later, 10).length, 2)

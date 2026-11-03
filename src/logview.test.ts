@@ -43,6 +43,17 @@ test('other lines keep their message, without quotes, and flag warnings and erro
   assert.equal(describeLine(failed, 'UTC'), '12:43:49 ERROR sync of inner-monologue crashed: Error: disk full')
 })
 
+test('email lines stay short, with quoted values unquoted', () => {
+  const joined = line({ logger: 'warmhole.email', message: '"inner-monologue": new subscriber, 3 subscribers' })
+  assert.equal(describeLine(joined, 'UTC'), '12:43:49 inner-monologue: new subscriber, 3 subscribers')
+  const retry = line({
+    logger: 'warmhole.email',
+    level: 'WARN',
+    message: '"inner-monologue": email of "Title b" to "n***@gmail.com" failed (attempt 2): "421 try later"',
+  })
+  assert.equal(describeLine(retry, 'UTC'), '12:43:49 WARN inner-monologue: email of Title b to n***@gmail.com failed (attempt 2): 421 try later')
+})
+
 test('lines that are not json pass through unchanged', () => {
   assert.equal(describeLine('Listening on :8080', 'UTC'), 'Listening on :8080')
   assert.equal(describeLine('', 'UTC'), null)
