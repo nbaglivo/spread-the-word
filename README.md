@@ -15,6 +15,28 @@ Likes, boosts and replies are ignored for now.
 
 Design and diagrams: [`docs/design.html`](docs/design.html).
 
+## Reading the fediverse (planned)
+
+v1 only publishes: your feed goes out to your followers. The reader API adds
+the other direction. Your site's account follows other fediverse accounts,
+warmhole keeps what they post and boost, and one private reader (Coffee
+Companion) pulls it over HTTP:
+
+- `POST` / `DELETE /reader/v1/sites/{siteId}/following` to follow or unfollow
+  by handle or actor URL
+- `GET /reader/v1/sites/{siteId}/items` to page through what arrived
+
+It serves posts from accounts you follow, not your own published posts. A blog
+appears only if it publishes over ActivityPub (another warmhole site, or
+WordPress with the ActivityPub plugin). Plain RSS feeds aren't fetched. The
+following is done by your blog's own account, so the accounts you follow see
+a follow from it.
+
+It's our own small API, not the Mastodon client API, so Mastodon apps can't
+read it. Why: [spec](docs/superpowers/specs/2026-10-16-reader-api-design.md#why-our-own-api-and-not-the-mastodon-client-api).
+Contract: [`docs/reader-api.openapi.json`](docs/reader-api.openapi.json).
+Plan: [`docs/superpowers/plans/2026-10-16-reader-api.md`](docs/superpowers/plans/2026-10-16-reader-api.md).
+
 ## Run it
 
 1. Copy `warmhole.example.json` to `warmhole.json` and fill in one entry per
