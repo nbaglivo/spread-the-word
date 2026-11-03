@@ -13,7 +13,7 @@ const ADDRESS_THROTTLE_MS = 10 * 60 * 1000
 const SITE_THROTTLE_WINDOW_MS = 60 * 60 * 1000
 const SITE_THROTTLE_LIMIT = 30
 
-export type SubscribeOutcome = 'sent' | 'ignored' | 'invalid' | 'throttled' | 'failed'
+export type SubscribeOutcome = 'sent' | 'ignored' | 'invalid' | 'throttled'
 export type ConfirmOutcome = 'confirmed' | 'invalid'
 export type SubscriptionsDeps = { config: Config; store: Store; mailer: Mailer; now?: () => Date }
 
@@ -30,6 +30,7 @@ export class Subscriptions {
   private store: Store
   private mailer: Mailer
   private now: () => Date
+  private pending = new Set<Promise<void>>()
 
   constructor(deps: SubscriptionsDeps) {
     this.config = deps.config
@@ -68,14 +69,19 @@ export class Subscriptions {
     })
 
     const rendered = confirmationEmail(site, confirmUrl(this.config, siteId, token))
-    try {
-      await this.mailer.send({ from: site.email.from, to: email, ...rendered })
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error)
-      logger.error('{site}: confirmation to {recipient} failed: {reason}', { site: siteId, recipient, reason })
-      return 'failed'
-    }
+    const sending: Promise<void> = this.mailer
+      .send({ from: site.email.from, to: email, ...rendered })
+      .catch((error) => {
+        const reason = error instanceof Error ? error.message : String(error)
+        logger.error('{site}: confirmation to {recipient} failed: {reason}', { site: siteId, recipient, reason })
+      })
+      .finally(() => this.pending.delete(sending))
+    this.pending.add(sending)
     return 'sent'
+  }
+
+  async settled(): Promise<void> {
+    while (this.pending.size > 0) await Promise.all(this.pending)
   }
 
   confirm(siteId: string, token: string): ConfirmOutcome {

@@ -175,7 +175,7 @@ function setupEmail(
 }
 
 test('subscribe redirects to check-inbox and passes the form fields', async () => {
-  for (const outcome of ['sent', 'ignored', 'throttled', 'failed']) {
+  for (const outcome of ['sent', 'ignored', 'throttled']) {
     const { form, calls } = setupEmail({ subscribe: outcome })
     const res = await form('/sites/inner-monologue/subscribe', 'email=a@b.co&website=')
     assert.equal(res.status, 303)
