@@ -279,7 +279,7 @@ export class Store {
     return Number(this.db.prepare('SELECT count(*) AS n FROM posts WHERE site_id = ? AND deleted_at IS NULL').get(siteId)!.n)
   }
 
-  applyChanges(siteId: string, changes: Changes, now: Date = new Date()): number {
+  applyChanges(siteId: string, changes: Changes, now: Date = new Date(), { email = false }: { email?: boolean } = {}): number {
     const taken = new Set(this.listPosts(siteId).map((p) => p.slug))
     const insert = this.db.prepare(
       `INSERT INTO posts (site_id, entry_id, slug, title, summary, html, url, published, updated, content_hash, pending_activity)
@@ -305,7 +305,7 @@ export class Store {
         const slug = slugFor(e.url, taken)
         taken.add(slug)
         insert.run(siteId, e.id, slug, e.title, e.summary, e.html, e.url, e.published.toISOString(), e.updated.toISOString(), contentHash(e), changes.silent ? null : 'Create')
-        if (!changes.silent) queued += Number(fanOut.run(e.id, now.toISOString(), siteId).changes)
+        if (email && !changes.silent) queued += Number(fanOut.run(e.id, now.toISOString(), siteId).changes)
       }
       for (const e of changes.update) {
         update.run(e.title, e.summary, e.html, e.url, e.published.toISOString(), e.updated.toISOString(), contentHash(e), siteId, e.id)

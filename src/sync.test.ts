@@ -2,6 +2,7 @@ import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { DatabaseSync } from 'node:sqlite'
 import { MemoryKvStore } from '@fedify/fedify'
+import type { Config } from './config.ts'
 import { Store } from './store.ts'
 import { buildFederation } from './federation.ts'
 import type { Federation } from '@fedify/fedify'
@@ -18,12 +19,28 @@ before(async () => {
 })
 after(() => remote.close())
 
-function setup() {
+const EMAIL_CONFIG: Config = {
+  ...TEST_CONFIG,
+  sites: [
+    {
+      ...TEST_CONFIG.sites[0],
+      email: {
+        from: 'Inner <nico@innermonologue.test>',
+        checkInboxUrl: new URL('https://innermonologue.test/check-inbox'),
+        confirmedUrl: new URL('https://innermonologue.test/confirmed'),
+        unsubscribedUrl: new URL('https://innermonologue.test/unsubscribed'),
+      },
+    },
+  ],
+  smtp: { host: 'smtp.test', port: 587, user: 'u', password: 'p', pauseMs: 0 },
+}
+
+function setup(config: Config = TEST_CONFIG) {
   const store = new Store(new DatabaseSync(':memory:'))
   store.migrate()
-  const federation = buildFederation({ config: TEST_CONFIG, store, kv: new MemoryKvStore(), allowPrivateAddress: true, skipSignatureVerification: true })
+  const federation = buildFederation({ config, store, kv: new MemoryKvStore(), allowPrivateAddress: true, skipSignatureVerification: true })
   let feed: FeedEntry[] = []
-  const syncer = new Syncer({ config: TEST_CONFIG, store, federation, fetchFeed: async () => rss(feed) })
+  const syncer = new Syncer({ config, store, federation, fetchFeed: async () => rss(feed) })
   store.addFollower('inner-monologue', { actorId: remote.actorId, inbox: remote.inbox, sharedInbox: remote.sharedInbox })
   return { store, syncer, setFeed: (entries: FeedEntry[]) => (feed = entries) }
 }
@@ -157,7 +174,7 @@ function subscribe(store: Store, n: number) {
 
 test('new posts queue emails and report them', async () => {
   const logs = await captureLogs()
-  const { store, syncer, setFeed } = setup()
+  const { store, syncer, setFeed } = setup(EMAIL_CONFIG)
   subscribe(store, 2)
   setFeed([entry('a')])
   await syncer.sync('inner-monologue')
@@ -166,8 +183,20 @@ test('new posts queue emails and report them', async () => {
   assert.deepEqual(logs.lines('warmhole.email'), ['inner-monologue: emailing Title b to 2 subscribers'])
 })
 
-test('edits and re-syncs queue no emails', async () => {
+test('a site without email queues nothing and logs nothing', async () => {
+  const logs = await captureLogs()
   const { store, syncer, setFeed } = setup()
+  subscribe(store, 2)
+  setFeed([entry('a')])
+  await syncer.sync('inner-monologue')
+  setFeed([entry('a'), entry('b')])
+  assert.deepEqual(await syncer.sync('inner-monologue'), { new: 1, updated: 0, deleted: 0, emails: 0 })
+  assert.equal(store.listDueDeliveries(new Date(Date.now() + 1000), 10).length, 0)
+  assert.deepEqual(logs.lines('warmhole.email'), [])
+})
+
+test('edits and re-syncs queue no emails', async () => {
+  const { store, syncer, setFeed } = setup(EMAIL_CONFIG)
   subscribe(store, 2)
   setFeed([entry('a')])
   await syncer.sync('inner-monologue')
@@ -179,7 +208,7 @@ test('edits and re-syncs queue no emails', async () => {
 
 test('fediverse hand-off failing still leaves emails queued', async () => {
   const logs = await captureLogs()
-  const { store, syncer, setFeed } = setup()
+  const { store, syncer, setFeed } = setup(EMAIL_CONFIG)
   subscribe(store, 2)
   setFeed([entry('a')])
   await syncer.sync('inner-monologue')
