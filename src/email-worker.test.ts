@@ -259,6 +259,38 @@ test('a mailer bug inside one row is contained', async () => {
   assert.equal(mailer.sent.length, 1)
 })
 
+test('a store failure inside one row backs it off instead of retrying every tick', async () => {
+  const { deps, store, mailer, subscribe, publish, rows } = setup()
+  subscribe('a@example.com')
+  subscribe('b@example.com')
+  publish(entry('p'))
+  const aId = Number(rows()[0].id)
+  const realSent = store.markDeliverySent.bind(store)
+  store.markDeliverySent = (id, now) => {
+    if (id === aId) throw new Error('disk full')
+    realSent(id, now)
+  }
+  const worker = new EmailWorker(deps)
+  await worker.tick()
+  assert.equal(await worker.tick(), 0)
+  assert.deepEqual(mailer.sent.map((m) => m.to), ['a@example.com', 'b@example.com'])
+  const [a, b] = rows()
+  assert.equal(a.status, 'queued')
+  assert.equal(a.attempts, 1)
+  assert.equal(a.next_attempt_at, new Date(START.getTime() + 60_000).toISOString())
+  assert.equal(b.status, 'sent')
+})
+
+test('overlapping ticks share one pass', async () => {
+  const { worker, mailer, subscribe, publish } = setup()
+  subscribe('a@example.com')
+  publish(entry('p'))
+  const [x, y] = await Promise.all([worker.tick(), worker.tick()])
+  assert.equal(x, 1)
+  assert.equal(y, 1)
+  assert.equal(mailer.sent.length, 1)
+})
+
 test('start and stop run ticks in the background', async () => {
   const { deps, mailer, subscribe, publish, rows } = setup()
   subscribe('a@example.com')
