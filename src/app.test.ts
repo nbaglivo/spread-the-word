@@ -10,6 +10,8 @@ import { GuardError } from './diff.ts'
 import { TEST_CONFIG } from '../test/fake-remote.ts'
 import type { SyncResult } from './sync.ts'
 import { captureLogs } from '../test/logs.ts'
+import { expiredLinkPage, unsubscribePage, unsubscribeUrl } from './emails.ts'
+import type { Config } from './config.ts'
 
 function setup(sync: (siteId: string) => Promise<SyncResult> = async () => ({ new: 1, updated: 0, deleted: 0 })) {
   const store = new Store(new DatabaseSync(':memory:'))
@@ -127,4 +129,126 @@ test('healthz and Fedify routes are reachable', async () => {
   const actor = await request('/users/inner-monologue', { headers: { accept: 'application/activity+json' } })
   assert.equal(actor.status, 200)
   assert.equal((await request('/nothing-here')).status, 404)
+})
+
+const EMAIL = {
+  from: 'nico@innermonologue.test',
+  checkInboxUrl: new URL('https://innermonologue.test/check-inbox'),
+  confirmedUrl: new URL('https://innermonologue.test/confirmed'),
+  unsubscribedUrl: new URL('https://innermonologue.test/unsubscribed'),
+}
+const EMAIL_CONFIG: Config = { ...TEST_CONFIG, sites: [{ ...TEST_CONFIG.sites[0], email: EMAIL }] }
+const EMAIL_SITE = EMAIL_CONFIG.sites[0]
+
+function setupEmail(
+  outcomes: { subscribe?: string; confirm?: string; unsubscribe?: boolean } = {},
+  config: Config = EMAIL_CONFIG,
+  withSubscriptions = true,
+) {
+  const store = new Store(new DatabaseSync(':memory:'))
+  store.migrate()
+  const calls: unknown[][] = []
+  const subscriptions = {
+    subscribe: async (siteId: string, input: { email: string; website: string }) => {
+      calls.push(['subscribe', siteId, input])
+      return (outcomes.subscribe ?? 'sent') as 'sent'
+    },
+    confirm: (siteId: string, token: string) => {
+      calls.push(['confirm', siteId, token])
+      return (outcomes.confirm ?? 'confirmed') as 'confirmed'
+    },
+    unsubscribe: (siteId: string, token: string) => {
+      calls.push(['unsubscribe', siteId, token])
+      return outcomes.unsubscribe ?? true
+    },
+  }
+  const app = buildApp({
+    config,
+    federation: buildFederation({ config, store, kv: new MemoryKvStore() }),
+    syncer: { sync: async () => ({ new: 0, updated: 0, deleted: 0 }) },
+    subscriptions: withSubscriptions ? subscriptions : undefined,
+  })
+  const request = (path: string, init?: RequestInit) => app.request(`https://ap.test${path}`, init)
+  const form = (path: string, body: string) =>
+    request(path, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body })
+  return { calls, request, form }
+}
+
+test('subscribe redirects to check-inbox and passes the form fields', async () => {
+  for (const outcome of ['sent', 'ignored', 'throttled', 'failed']) {
+    const { form, calls } = setupEmail({ subscribe: outcome })
+    const res = await form('/sites/inner-monologue/subscribe', 'email=a@b.co&website=')
+    assert.equal(res.status, 303)
+    assert.equal(res.headers.get('location'), EMAIL.checkInboxUrl.href, outcome)
+    assert.deepEqual(calls, [['subscribe', 'inner-monologue', { email: 'a@b.co', website: '' }]])
+  }
+})
+
+test('subscribe flags invalid addresses and defaults a missing website', async () => {
+  const { form, calls } = setupEmail({ subscribe: 'invalid' })
+  const res = await form('/sites/inner-monologue/subscribe', 'email=nope')
+  assert.equal(res.status, 303)
+  assert.equal(res.headers.get('location'), 'https://innermonologue.test/check-inbox?error=invalid')
+  assert.deepEqual(calls, [['subscribe', 'inner-monologue', { email: 'nope', website: '' }]])
+})
+
+test('email routes 404 without email config, unknown site or subscriptions', async () => {
+  const cases = [setupEmail({}, TEST_CONFIG), setupEmail({}, EMAIL_CONFIG, false)]
+  for (const { request, form } of cases) {
+    assert.equal((await form('/sites/inner-monologue/subscribe', 'email=a@b.co')).status, 404)
+    assert.equal((await request('/sites/inner-monologue/confirm?token=t')).status, 404)
+    assert.equal((await request('/sites/inner-monologue/unsubscribe?token=t')).status, 404)
+    assert.equal((await form('/sites/inner-monologue/unsubscribe?token=t', '')).status, 404)
+  }
+  const { request, form } = setupEmail()
+  assert.equal((await form('/sites/nope/subscribe', 'email=a@b.co')).status, 404)
+  assert.deepEqual(await (await request('/sites/nope/confirm?token=t')).json(), { error: 'not found' })
+})
+
+test('confirm redirects on success and answers 410 otherwise', async () => {
+  const ok = setupEmail()
+  const res = await ok.request('/sites/inner-monologue/confirm?token=t')
+  assert.equal(res.status, 303)
+  assert.equal(res.headers.get('location'), EMAIL.confirmedUrl.href)
+  assert.deepEqual(ok.calls, [['confirm', 'inner-monologue', 't']])
+
+  const bad = setupEmail({ confirm: 'invalid' })
+  const gone = await bad.request('/sites/inner-monologue/confirm?token=t')
+  assert.equal(gone.status, 410)
+  assert.equal(await gone.text(), expiredLinkPage(EMAIL_SITE))
+
+  const missing = setupEmail()
+  assert.equal((await missing.request('/sites/inner-monologue/confirm')).status, 410)
+  assert.deepEqual(missing.calls, [])
+})
+
+test('GET unsubscribe shows a confirmation form without unsubscribing', async () => {
+  const { request, calls } = setupEmail()
+  const res = await request('/sites/inner-monologue/unsubscribe?token=t')
+  assert.equal(res.status, 200)
+  assert.match(res.headers.get('content-type') ?? '', /text\/html/)
+  assert.equal(await res.text(), unsubscribePage(EMAIL_SITE, unsubscribeUrl(EMAIL_CONFIG, 'inner-monologue', 't')))
+  assert.deepEqual(calls, [])
+  const missing = await request('/sites/inner-monologue/unsubscribe')
+  assert.equal(missing.status, 410)
+  assert.equal(await missing.text(), expiredLinkPage(EMAIL_SITE))
+})
+
+test('POST unsubscribe answers one-click with 200 and forms with a redirect', async () => {
+  const oneClick = setupEmail()
+  const res = await oneClick.form('/sites/inner-monologue/unsubscribe?token=t', 'List-Unsubscribe=One-Click')
+  assert.equal(res.status, 200)
+  assert.equal(await res.text(), '')
+  assert.deepEqual(oneClick.calls, [['unsubscribe', 'inner-monologue', 't']])
+
+  const browser = setupEmail({ unsubscribe: false })
+  const redirect = await browser.form('/sites/inner-monologue/unsubscribe?token=t', '')
+  assert.equal(redirect.status, 303)
+  assert.equal(redirect.headers.get('location'), EMAIL.unsubscribedUrl.href)
+  assert.deepEqual(browser.calls, [['unsubscribe', 'inner-monologue', 't']])
+
+  const noToken = setupEmail()
+  assert.equal((await noToken.form('/sites/inner-monologue/unsubscribe', '')).status, 303)
+  assert.equal((await noToken.form('/sites/inner-monologue/unsubscribe', 'List-Unsubscribe=One-Click')).status, 200)
+  assert.deepEqual(noToken.calls, [])
 })

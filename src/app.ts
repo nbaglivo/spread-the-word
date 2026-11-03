@@ -7,6 +7,8 @@ import type { Config, SiteConfig } from './config.ts'
 import type { SyncResult } from './sync.ts'
 import { FeedError } from './feed.ts'
 import { GuardError } from './diff.ts'
+import type { Subscriptions } from './subscriptions.ts'
+import { expiredLinkPage, unsubscribePage, unsubscribeUrl } from './emails.ts'
 
 const logger = getLogger(['warmhole', 'sync'])
 
@@ -14,6 +16,7 @@ export type AppDeps = {
   config: Config
   federation: Federation<void>
   syncer: { sync(siteId: string): Promise<SyncResult> }
+  subscriptions?: Pick<Subscriptions, 'subscribe' | 'confirm' | 'unsubscribe'>
 }
 
 function actorUrl(config: Config, site: SiteConfig): string {
@@ -49,7 +52,7 @@ function sameToken(given: string, expected: string): boolean {
   return timingSafeEqual(a, b)
 }
 
-export function buildApp({ config, federation, syncer }: AppDeps): Hono {
+export function buildApp({ config, federation, syncer, subscriptions }: AppDeps): Hono {
   const app = new Hono()
   const sites = new Map(config.sites.map((s) => [s.id, s]))
 
@@ -85,6 +88,57 @@ export function buildApp({ config, federation, syncer }: AppDeps): Hono {
       logger.error('sync of {site} crashed: {error}', { site: site.id, error })
       return c.json({ error: 'internal error' }, 500)
     }
+  })
+
+  const emailSite = (id: string) => {
+    const site = sites.get(id)
+    return site?.email && subscriptions ? { site, email: site.email, subscriptions } : undefined
+  }
+
+  const field = (body: Record<string, unknown>, name: string): string => {
+    const value = body[name]
+    return typeof value === 'string' ? value : ''
+  }
+
+  app.post('/sites/:id/subscribe', async (c) => {
+    const found = emailSite(c.req.param('id'))
+    if (!found) return c.json({ error: 'not found' }, 404)
+    const body = await c.req.parseBody()
+    const outcome = await found.subscriptions.subscribe(found.site.id, {
+      email: field(body, 'email'),
+      website: field(body, 'website'),
+    })
+    const target = new URL(found.email.checkInboxUrl)
+    if (outcome === 'invalid') target.searchParams.set('error', 'invalid')
+    return c.redirect(target.href, 303)
+  })
+
+  app.get('/sites/:id/confirm', (c) => {
+    const found = emailSite(c.req.param('id'))
+    if (!found) return c.json({ error: 'not found' }, 404)
+    const token = c.req.query('token')
+    if (!token || found.subscriptions.confirm(found.site.id, token) === 'invalid') {
+      return c.html(expiredLinkPage(found.site), 410)
+    }
+    return c.redirect(found.email.confirmedUrl.href, 303)
+  })
+
+  app.get('/sites/:id/unsubscribe', (c) => {
+    const found = emailSite(c.req.param('id'))
+    if (!found) return c.json({ error: 'not found' }, 404)
+    const token = c.req.query('token')
+    if (!token) return c.html(expiredLinkPage(found.site), 410)
+    return c.html(unsubscribePage(found.site, unsubscribeUrl(config, found.site.id, token)))
+  })
+
+  app.post('/sites/:id/unsubscribe', async (c) => {
+    const found = emailSite(c.req.param('id'))
+    if (!found) return c.json({ error: 'not found' }, 404)
+    const token = c.req.query('token')
+    if (token) found.subscriptions.unsubscribe(found.site.id, token)
+    const body = await c.req.parseBody()
+    if (field(body, 'List-Unsubscribe') === 'One-Click') return c.body(null, 200)
+    return c.redirect(found.email.unsubscribedUrl.href, 303)
   })
 
   app.get('/healthz', (c) => c.text('ok'))
