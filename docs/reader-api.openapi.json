@@ -1,0 +1,894 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "warmhole reader API",
+    "version": "1.0.0",
+    "summary": "Read what the accounts a site follows have posted, and manage who the site follows.",
+    "description": "A small, private API for one reader (for example Coffee Companion) per site. Every request is scoped to one site and authenticated with that site's reader token. Responses are JSON. Timestamps are RFC 3339 in UTC with millisecond precision, for example 2026-10-16T06:12:03.000Z. Within /reader/v1, fields and enum values may be added; clients must ignore unknown fields and treat unknown enum values like the closest generic value (an unknown item type like Note, an unknown attachment kind like other). Removing or renaming a field, or changing its meaning, requires /reader/v2. Design: docs/superpowers/specs/2026-10-16-reader-api-design.md.",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://ap.nbaglivo.dev/reader/v1",
+      "description": "The Inner Monologue's warmhole instance"
+    },
+    {
+      "url": "http://localhost:8080/reader/v1",
+      "description": "Local development"
+    }
+  ],
+  "security": [
+    {
+      "readerToken": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "items",
+      "description": "Posts received from accounts the site follows, including boosts."
+    },
+    {
+      "name": "following",
+      "description": "Accounts the site follows, and following or unfollowing them."
+    }
+  ],
+  "paths": {
+    "/sites/{siteId}/items": {
+      "get": {
+        "tags": ["items"],
+        "operationId": "listItems",
+        "summary": "List received items",
+        "description": "Items are listed in arrival order: the order warmhole stored them in, which is also the order of received_at. Paging is keyset-based on an internal, ever-increasing sequence number, so it is stable under inserts: a page never repeats or skips an item because new items arrived. In desc order new items only ever appear before the first page; in asc order they appear after the last page. Deleted items are never listed. since and until filter on received_at as a half-open window: received_at > since and received_at <= until. Pass next_cursor as cursor to get the next page. A cursor carries order, since and until; repeating them with the same values is allowed, different values are rejected with invalid_cursor. next_cursor is null only when no further item can ever match: in desc order once the oldest match was returned, in asc order once the newest match was returned and until is set. In asc order without until, next_cursor is always present, so a client can keep it and resume from it later to get only what arrived since; an empty items array then means it is caught up.",
+        "parameters": [
+          { "$ref": "#/components/parameters/SiteId" },
+          { "$ref": "#/components/parameters/Since" },
+          { "$ref": "#/components/parameters/Until" },
+          { "$ref": "#/components/parameters/Order" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Cursor" }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of items.",
+            "headers": {
+              "Cache-Control": { "$ref": "#/components/headers/NoStore" }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ItemPage" },
+                "examples": {
+                  "morning": {
+                    "summary": "Newest first, two items, more to come",
+                    "value": {
+                      "items": [
+                        {
+                          "id": "https://mastodon.social/users/alice/statuses/113284750912345678",
+                          "url": "https://mastodon.social/@alice/113284750912345678",
+                          "type": "Note",
+                          "visibility": "public",
+                          "published": "2026-10-16T06:12:03.000Z",
+                          "updated": null,
+                          "title": null,
+                          "summary": null,
+                          "sensitive": false,
+                          "content_html": "<p>First pour-over of the season. The <a href=\"https://mastodon.social/tags/coffee\" class=\"mention hashtag\" rel=\"nofollow noopener noreferrer\">#<span>coffee</span></a> tastes like October.</p>",
+                          "content_text": "First pour-over of the season. The #coffee tastes like October.",
+                          "language": "en",
+                          "author": {
+                            "id": "https://mastodon.social/users/alice",
+                            "handle": "@alice@mastodon.social",
+                            "name": "Alice",
+                            "avatar_url": "https://files.mastodon.social/accounts/avatars/000/000/001/original/alice.png",
+                            "profile_url": "https://mastodon.social/@alice"
+                          },
+                          "boost": null,
+                          "in_reply_to": null,
+                          "attachments": [
+                            {
+                              "url": "https://files.mastodon.social/media_attachments/files/113/284/750/original/kettle.jpg",
+                              "media_type": "image/jpeg",
+                              "kind": "image",
+                              "description": "A gooseneck kettle pouring water over a paper filter.",
+                              "width": 1600,
+                              "height": 1200
+                            }
+                          ],
+                          "hashtags": [
+                            { "name": "coffee", "url": "https://mastodon.social/tags/coffee" }
+                          ],
+                          "mentions": [],
+                          "received_at": "2026-10-16T06:12:05.412Z"
+                        },
+                        {
+                          "id": "https://write.as/bob/autumn-reading",
+                          "url": "https://write.as/bob/autumn-reading",
+                          "type": "Article",
+                          "visibility": "public",
+                          "published": "2026-10-15T21:00:00.000Z",
+                          "updated": "2026-10-15T21:40:00.000Z",
+                          "title": "Autumn reading",
+                          "summary": "Five books for long evenings.",
+                          "sensitive": false,
+                          "content_html": "<h2>One</h2><p>A slow book about rivers.</p>",
+                          "content_text": "One\n\nA slow book about rivers.",
+                          "language": null,
+                          "author": {
+                            "id": "https://write.as/api/collections/bob",
+                            "handle": "@bob@write.as",
+                            "name": "Bob's notebook",
+                            "avatar_url": null,
+                            "profile_url": "https://write.as/bob/"
+                          },
+                          "boost": {
+                            "by": {
+                              "id": "https://hachyderm.io/users/carol",
+                              "handle": "@carol@hachyderm.io",
+                              "name": "Carol",
+                              "avatar_url": "https://media.hachyderm.io/accounts/avatars/carol.png",
+                              "profile_url": "https://hachyderm.io/@carol"
+                            },
+                            "boosted_at": "2026-10-16T05:58:41.000Z",
+                            "activity_id": "https://hachyderm.io/users/carol/statuses/113284700000000001/activity"
+                          },
+                          "in_reply_to": null,
+                          "attachments": [],
+                          "hashtags": [],
+                          "mentions": [],
+                          "received_at": "2026-10-16T05:58:42.007Z"
+                        }
+                      ],
+                      "next_cursor": "eyJ2IjoxLCJvIjoiZGVzYyIsInMiOjQxLCJhIjpudWxsLCJiIjpudWxsfQ"
+                    }
+                  },
+                  "caughtUp": {
+                    "summary": "Oldest first, nothing new yet; keep the cursor",
+                    "value": {
+                      "items": [],
+                      "next_cursor": "eyJ2IjoxLCJvIjoiYXNjIiwicyI6NDIsImEiOm51bGwsImIiOm51bGx9"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/sites/{siteId}/items/lookup": {
+      "get": {
+        "tags": ["items"],
+        "operationId": "getItem",
+        "summary": "Get one item by its ActivityPub object id",
+        "description": "Returns the item whose id equals the given object id. The id is passed as a query parameter because it is a URL. A deleted item answers 410 so a reader can drop what it already has.",
+        "parameters": [
+          { "$ref": "#/components/parameters/SiteId" },
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "description": "The item's id: the ActivityPub object id, percent-encoded.",
+            "schema": { "type": "string", "format": "uri", "maxLength": 2048 },
+            "example": "https://mastodon.social/users/alice/statuses/113284750912345678"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item.",
+            "headers": {
+              "Cache-Control": { "$ref": "#/components/headers/NoStore" }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Item" },
+                "example": {
+                  "id": "https://mastodon.social/users/alice/statuses/113284750912345678",
+                  "url": "https://mastodon.social/@alice/113284750912345678",
+                  "type": "Note",
+                  "visibility": "followers",
+                  "published": "2026-10-16T06:12:03.000Z",
+                  "updated": null,
+                  "title": null,
+                  "summary": "Spoilers for the last chapter",
+                  "sensitive": true,
+                  "content_html": "<p>The river was the narrator all along.</p>",
+                  "content_text": "The river was the narrator all along.",
+                  "language": "en",
+                  "author": {
+                    "id": "https://mastodon.social/users/alice",
+                    "handle": "@alice@mastodon.social",
+                    "name": "Alice",
+                    "avatar_url": null,
+                    "profile_url": "https://mastodon.social/@alice"
+                  },
+                  "boost": null,
+                  "in_reply_to": "https://mastodon.social/users/alice/statuses/113284700000000000",
+                  "attachments": [],
+                  "hashtags": [],
+                  "mentions": [
+                    { "actor_id": "https://hachyderm.io/users/carol", "handle": "@carol@hachyderm.io" }
+                  ],
+                  "received_at": "2026-10-16T06:12:05.412Z"
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": { "$ref": "#/components/responses/Gone" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/sites/{siteId}/following": {
+      "get": {
+        "tags": ["following"],
+        "operationId": "listFollowing",
+        "summary": "List accounts the site follows",
+        "description": "Every follow the site has asked for and not undone, oldest first, with its state. Not paged: a site follows at most 2000 accounts.",
+        "parameters": [
+          { "$ref": "#/components/parameters/SiteId" },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "description": "Only list follows in this state.",
+            "schema": { "$ref": "#/components/schemas/FollowState" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The follows.",
+            "headers": {
+              "Cache-Control": { "$ref": "#/components/headers/NoStore" }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FollowingList" },
+                "example": {
+                  "following": [
+                    {
+                      "account": {
+                        "id": "https://mastodon.social/users/alice",
+                        "handle": "@alice@mastodon.social",
+                        "name": "Alice",
+                        "avatar_url": "https://files.mastodon.social/accounts/avatars/000/000/001/original/alice.png",
+                        "profile_url": "https://mastodon.social/@alice"
+                      },
+                      "state": "accepted",
+                      "created_at": "2026-10-16T07:00:00.000Z",
+                      "state_changed_at": "2026-10-16T07:00:01.250Z"
+                    },
+                    {
+                      "account": {
+                        "id": "https://locked.example/users/dave",
+                        "handle": "@dave@locked.example",
+                        "name": "Dave",
+                        "avatar_url": null,
+                        "profile_url": "https://locked.example/@dave"
+                      },
+                      "state": "pending",
+                      "created_at": "2026-10-16T07:02:00.000Z",
+                      "state_changed_at": "2026-10-16T07:02:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      },
+      "post": {
+        "tags": ["following"],
+        "operationId": "follow",
+        "summary": "Follow an account",
+        "description": "Resolves the account (a handle through WebFinger, or an actor URL directly), stores the follow as pending and sends a signed Follow. The remote server's Accept or Reject later moves it to accepted or rejected. Following an account that is already pending or rejected sends a new Follow and answers 202. Following an account that is already accepted changes nothing and answers 200. Resolution has a 10 second timeout.",
+        "parameters": [
+          { "$ref": "#/components/parameters/SiteId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FollowRequest" },
+              "examples": {
+                "handle": {
+                  "summary": "By handle",
+                  "value": { "account": "@alice@mastodon.social" }
+                },
+                "actorUrl": {
+                  "summary": "By actor URL",
+                  "value": { "account": "https://mastodon.social/users/alice" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Already followed and accepted. Nothing was sent.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Following" },
+                "example": {
+                  "account": {
+                    "id": "https://mastodon.social/users/alice",
+                    "handle": "@alice@mastodon.social",
+                    "name": "Alice",
+                    "avatar_url": null,
+                    "profile_url": "https://mastodon.social/@alice"
+                  },
+                  "state": "accepted",
+                  "created_at": "2026-10-16T07:00:00.000Z",
+                  "state_changed_at": "2026-10-16T07:00:01.250Z"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "A Follow was sent. The follow is pending until the remote server answers.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Following" },
+                "example": {
+                  "account": {
+                    "id": "https://mastodon.social/users/alice",
+                    "handle": "@alice@mastodon.social",
+                    "name": "Alice",
+                    "avatar_url": null,
+                    "profile_url": "https://mastodon.social/@alice"
+                  },
+                  "state": "pending",
+                  "created_at": "2026-10-16T07:00:00.000Z",
+                  "state_changed_at": "2026-10-16T07:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "422": { "$ref": "#/components/responses/Unprocessable" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "502": { "$ref": "#/components/responses/RemoteUnreachable" }
+        }
+      },
+      "delete": {
+        "tags": ["following"],
+        "operationId": "unfollow",
+        "summary": "Unfollow an account",
+        "description": "Removes the follow and, unless it was rejected, sends Undo(Follow). Matches an actor URL against stored actor ids and a handle against stored handles, case-insensitively, without any remote lookup. Items already received from the account are kept until retention removes them.",
+        "parameters": [
+          { "$ref": "#/components/parameters/SiteId" },
+          {
+            "name": "account",
+            "in": "query",
+            "required": true,
+            "description": "A handle (@user@host, user@host or acct:user@host) or an actor URL, percent-encoded.",
+            "schema": { "type": "string", "minLength": 1, "maxLength": 2048 },
+            "example": "@alice@mastodon.social"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Unfollowed."
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "readerToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "The site's reader token: the value of the environment variable named by the site's readerTokenEnv. At least 32 characters, and never equal to the site's sync token. A missing or wrong token, an unknown site and a site without a reader token all answer 401."
+      }
+    },
+    "parameters": {
+      "SiteId": {
+        "name": "siteId",
+        "in": "path",
+        "required": true,
+        "description": "The site's id from the warmhole config.",
+        "schema": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "example": "inner-monologue"
+      },
+      "Since": {
+        "name": "since",
+        "in": "query",
+        "required": false,
+        "description": "Only items with received_at strictly after this instant. RFC 3339 with a time zone offset.",
+        "schema": { "type": "string", "format": "date-time" },
+        "example": "2026-10-15T06:00:00Z"
+      },
+      "Until": {
+        "name": "until",
+        "in": "query",
+        "required": false,
+        "description": "Only items with received_at at or before this instant. RFC 3339 with a time zone offset. Must be after since when both are given.",
+        "schema": { "type": "string", "format": "date-time" },
+        "example": "2026-10-16T06:00:00Z"
+      },
+      "Order": {
+        "name": "order",
+        "in": "query",
+        "required": false,
+        "description": "desc lists the newest arrivals first, asc the oldest first.",
+        "schema": { "type": "string", "enum": ["desc", "asc"], "default": "desc" }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Maximum number of items in the page.",
+        "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "An opaque next_cursor from an earlier page. Clients must not build or parse cursors.",
+        "schema": { "type": "string", "maxLength": 512 }
+      }
+    },
+    "headers": {
+      "NoStore": {
+        "description": "Always no-store: responses hold private posts.",
+        "schema": { "type": "string", "const": "no-store" }
+      },
+      "RetryAfter": {
+        "description": "Seconds to wait before retrying.",
+        "schema": { "type": "integer", "minimum": 1 }
+      },
+      "WwwAuthenticate": {
+        "description": "Always Bearer realm=\"warmhole\".",
+        "schema": { "type": "string" }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "A parameter or the request body is invalid. code is invalid_request or invalid_cursor.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "examples": {
+              "invalidRequest": {
+                "value": { "error": "limit must be an integer from 1 to 200", "code": "invalid_request" }
+              },
+              "invalidCursor": {
+                "value": { "error": "cursor was made with a different order", "code": "invalid_cursor" }
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or wrong token, unknown site, or a site without a reader token.",
+        "headers": {
+          "WWW-Authenticate": { "$ref": "#/components/headers/WwwAuthenticate" }
+        },
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "unauthorized", "code": "unauthorized" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "No such item or follow for this site, or no such route.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "item not found", "code": "not_found" }
+          }
+        }
+      },
+      "Gone": {
+        "description": "The item was deleted by its author.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "item was deleted", "code": "gone" }
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "description": "The request body is over 4 KB.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "request body is over 4096 bytes", "code": "payload_too_large" }
+          }
+        }
+      },
+      "Unprocessable": {
+        "description": "The account can't be followed. code is account_not_found, not_an_actor, cannot_follow_self or following_limit.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "examples": {
+              "accountNotFound": {
+                "value": { "error": "no account found for @nobody@mastodon.social", "code": "account_not_found" }
+              },
+              "notAnActor": {
+                "value": { "error": "https://mastodon.social/@alice/1 is not an account", "code": "not_an_actor" }
+              },
+              "self": {
+                "value": { "error": "a site can't follow a warmhole account", "code": "cannot_follow_self" }
+              },
+              "limit": {
+                "value": { "error": "this site already follows 2000 accounts", "code": "following_limit" }
+              }
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Too many failed authentications from this client, or too many follow requests for this site, in the last minute.",
+        "headers": {
+          "Retry-After": { "$ref": "#/components/headers/RetryAfter" }
+        },
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "too many requests, retry in 42 s", "code": "rate_limited" }
+          }
+        }
+      },
+      "RemoteUnreachable": {
+        "description": "The account's server or its WebFinger could not be reached in time or answered with an error.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "error": "could not reach mastodon.social: timed out after 10 s", "code": "remote_unreachable" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "description": "Every non-2xx response from the reader API has this body. error is for people and may change; code is for programs and is stable.",
+        "required": ["error", "code"],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "A short, human-readable message."
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "invalid_request",
+              "invalid_cursor",
+              "unauthorized",
+              "not_found",
+              "gone",
+              "payload_too_large",
+              "account_not_found",
+              "not_an_actor",
+              "cannot_follow_self",
+              "following_limit",
+              "rate_limited",
+              "remote_unreachable",
+              "internal"
+            ]
+          }
+        }
+      },
+      "Account": {
+        "type": "object",
+        "description": "A fediverse account, from warmhole's actor cache. Refreshed at most once a day, and whenever the account sends Update for itself.",
+        "required": ["id", "handle", "name", "avatar_url", "profile_url"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uri",
+            "description": "The ActivityPub actor id."
+          },
+          "handle": {
+            "type": ["string", "null"],
+            "description": "@user@host, as confirmed through WebFinger (so it can be on a different domain than the actor). Falls back to @preferredUsername@actor-host when WebFinger fails; null when the actor has no preferredUsername.",
+            "examples": ["@alice@mastodon.social"]
+          },
+          "name": {
+            "type": ["string", "null"],
+            "description": "Display name as plain text. Custom emoji shortcodes stay as text, for example :blobcat:."
+          },
+          "avatar_url": {
+            "type": ["string", "null"],
+            "format": "uri",
+            "description": "The actor's icon. Remote; warmhole doesn't proxy media."
+          },
+          "profile_url": {
+            "type": ["string", "null"],
+            "format": "uri",
+            "description": "The human profile page (the actor's url), when it has one."
+          }
+        }
+      },
+      "Attachment": {
+        "type": "object",
+        "required": ["url", "media_type", "kind", "description", "width", "height"],
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The media file on the author's server. Remote; warmhole doesn't proxy media."
+          },
+          "media_type": {
+            "type": ["string", "null"],
+            "description": "The MIME type the author's server declared.",
+            "examples": ["image/jpeg"]
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["image", "video", "audio", "other"],
+            "description": "From media_type when it has an image/, video/ or audio/ prefix, otherwise from the attachment's ActivityPub type."
+          },
+          "description": {
+            "type": ["string", "null"],
+            "description": "Alt text, plain text."
+          },
+          "width": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "height": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          }
+        }
+      },
+      "Hashtag": {
+        "type": "object",
+        "required": ["name", "url"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The tag without the leading #, as written.",
+            "examples": ["coffee"]
+          },
+          "url": {
+            "type": ["string", "null"],
+            "format": "uri",
+            "description": "The tag's page on the author's server."
+          }
+        }
+      },
+      "Mention": {
+        "type": "object",
+        "required": ["actor_id", "handle"],
+        "additionalProperties": false,
+        "properties": {
+          "actor_id": {
+            "type": "string",
+            "format": "uri"
+          },
+          "handle": {
+            "type": ["string", "null"],
+            "description": "The mention's text as the author's server wrote it, starting with @. Not verified.",
+            "examples": ["@carol@hachyderm.io"]
+          }
+        }
+      },
+      "Boost": {
+        "type": "object",
+        "description": "Present when the item reached the site because a followed account boosted it.",
+        "required": ["by", "boosted_at", "activity_id"],
+        "additionalProperties": false,
+        "properties": {
+          "by": { "$ref": "#/components/schemas/Account" },
+          "boosted_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The Announce's published time, or when warmhole received it if it had none."
+          },
+          "activity_id": {
+            "type": "string",
+            "format": "uri",
+            "description": "The Announce activity's id."
+          }
+        }
+      },
+      "Item": {
+        "type": "object",
+        "description": "One post, ready to render without further fetches. All HTML is sanitized by warmhole with a fixed allowlist (see the design addendum): only p, br, a, span, strong, b, em, i, u, s, del, ins, code, pre, blockquote, ul, ol, li, h1 to h6, hr, sup, sub, img, figure, figcaption, table, thead, tbody, tr, th, td; links only http, https and mailto, always rel=\"nofollow noopener noreferrer\"; images only https; no style, script, event handler or iframe.",
+        "required": [
+          "id",
+          "url",
+          "type",
+          "visibility",
+          "published",
+          "updated",
+          "title",
+          "summary",
+          "sensitive",
+          "content_html",
+          "content_text",
+          "language",
+          "author",
+          "boost",
+          "in_reply_to",
+          "attachments",
+          "hashtags",
+          "mentions",
+          "received_at"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uri",
+            "description": "The ActivityPub object id. Stable, and unique per site: an object is stored once even if it arrives several times or is boosted by several accounts."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The human page for the post: the object's first text/html url, else its first http(s) url, else its id."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["Note", "Article", "Page", "Question", "Image", "Video", "Audio"],
+            "description": "The ActivityPub object type. Question is a poll; its options aren't included in v1."
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["public", "unlisted", "followers"],
+            "description": "From the object's addressing. Direct messages are never stored."
+          },
+          "published": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the author published it; received_at if the object had no published time."
+          },
+          "updated": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "When the author last edited it, if ever."
+          },
+          "title": {
+            "type": ["string", "null"],
+            "description": "The object's name as plain text. Always null for Note."
+          },
+          "summary": {
+            "type": ["string", "null"],
+            "description": "Plain text. For a Note this is the content warning; for an Article, its summary or subtitle. Use sensitive to tell them apart."
+          },
+          "sensitive": {
+            "type": "boolean",
+            "description": "The author marked the post or its media as sensitive. When true, summary is a content warning and content should be hidden by default."
+          },
+          "content_html": {
+            "type": "string",
+            "description": "The content, sanitized. May be empty, for example for a post that is only an image."
+          },
+          "content_text": {
+            "type": "string",
+            "description": "A plain-text rendering of content_html: paragraphs separated by a blank line, line breaks kept, list items prefixed with \"- \" or \"1. \", quotes prefixed with \"> \", link text kept and markup dropped, entities decoded."
+          },
+          "language": {
+            "type": ["string", "null"],
+            "description": "BCP 47 language tag of the content, when the author's server declared one.",
+            "examples": ["en"]
+          },
+          "author": { "$ref": "#/components/schemas/Account" },
+          "boost": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/Boost" },
+              { "type": "null" }
+            ]
+          },
+          "in_reply_to": {
+            "type": ["string", "null"],
+            "format": "uri",
+            "description": "The id of the object this replies to. Not fetched or stored."
+          },
+          "attachments": {
+            "type": "array",
+            "maxItems": 20,
+            "items": { "$ref": "#/components/schemas/Attachment" }
+          },
+          "hashtags": {
+            "type": "array",
+            "maxItems": 50,
+            "items": { "$ref": "#/components/schemas/Hashtag" }
+          },
+          "mentions": {
+            "type": "array",
+            "maxItems": 50,
+            "items": { "$ref": "#/components/schemas/Mention" }
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When warmhole stored the item (for a boost, when the boost arrived). since and until filter on this."
+          }
+        }
+      },
+      "ItemPage": {
+        "type": "object",
+        "required": ["items", "next_cursor"],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 200,
+            "items": { "$ref": "#/components/schemas/Item" }
+          },
+          "next_cursor": {
+            "type": ["string", "null"],
+            "description": "Pass as cursor for the next page. null when no further item can match (see listItems)."
+          }
+        }
+      },
+      "FollowState": {
+        "type": "string",
+        "enum": ["pending", "accepted", "rejected"],
+        "description": "pending: Follow sent, no answer yet. accepted: the remote server sent Accept; its posts are kept. rejected: the remote server sent Reject, either to the Follow or later, by removing the site as a follower."
+      },
+      "Following": {
+        "type": "object",
+        "required": ["account", "state", "created_at", "state_changed_at"],
+        "additionalProperties": false,
+        "properties": {
+          "account": { "$ref": "#/components/schemas/Account" },
+          "state": { "$ref": "#/components/schemas/FollowState" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the site first asked to follow."
+          },
+          "state_changed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When state last changed, or when a Follow was last sent."
+          }
+        }
+      },
+      "FollowingList": {
+        "type": "object",
+        "required": ["following"],
+        "additionalProperties": false,
+        "properties": {
+          "following": {
+            "type": "array",
+            "maxItems": 2000,
+            "items": { "$ref": "#/components/schemas/Following" }
+          }
+        }
+      },
+      "FollowRequest": {
+        "type": "object",
+        "required": ["account"],
+        "additionalProperties": false,
+        "properties": {
+          "account": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "A handle (@user@host, user@host or acct:user@host), resolved through WebFinger, or an https actor URL.",
+            "examples": ["@alice@mastodon.social", "https://mastodon.social/users/alice"]
+          }
+        }
+      }
+    }
+  }
+}
