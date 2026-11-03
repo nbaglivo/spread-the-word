@@ -129,3 +129,126 @@ test('keys round-trip and are not overwritten', () => {
   assert.deepEqual(store.getKeys('s'), [key])
   assert.deepEqual(store.getKeys('other'), [])
 })
+
+const fields = (n: number) => ({
+  confirmTokenHash: `hash-${n}`,
+  confirmExpiresAt: '2026-11-05T00:00:00.000Z',
+  confirmSentAt: '2026-11-03T00:00:00.000Z',
+  unsubscribeToken: `unsub-${n}`,
+})
+
+function confirmed(store: Store, siteId: string, email: string, n: number) {
+  store.savePendingSubscriber(siteId, email, fields(n))
+  return store.confirmSubscriber(siteId, `hash-${n}`, new Date('2026-11-03T01:00:00Z'))!
+}
+
+test('savePendingSubscriber creates then refreshes a pending row', () => {
+  const store = freshStore()
+  const first = store.savePendingSubscriber('s', 'a@x.dev', fields(1))
+  assert.equal(first.status, 'pending')
+  const second = store.savePendingSubscriber('s', 'a@x.dev', { ...fields(2), unsubscribeToken: 'other' })
+  assert.equal(second.id, first.id)
+  assert.equal(second.confirmTokenHash, 'hash-2')
+  assert.equal(second.unsubscribeToken, first.unsubscribeToken)
+  assert.deepEqual(store.getSubscriber('s', 'a@x.dev'), second)
+  assert.deepEqual(store.getSubscriberById(first.id), second)
+  assert.equal(store.getSubscriber('s', 'b@x.dev'), undefined)
+})
+
+test('confirmSubscriber matches hash and expiry once', () => {
+  const store = freshStore()
+  store.savePendingSubscriber('s', 'a@x.dev', fields(1))
+  assert.equal(store.confirmSubscriber('s', 'nope', new Date('2026-11-03T01:00:00Z')), undefined)
+  assert.equal(store.confirmSubscriber('s', 'hash-1', new Date('2026-11-06T00:00:00Z')), undefined)
+  const sub = store.confirmSubscriber('s', 'hash-1', new Date('2026-11-03T01:00:00Z'))!
+  assert.equal(sub.status, 'confirmed')
+  assert.equal(sub.confirmTokenHash, null)
+  assert.equal(sub.confirmedAt, '2026-11-03T01:00:00.000Z')
+  assert.equal(store.confirmSubscriber('s', 'hash-1', new Date('2026-11-03T01:00:00Z')), undefined)
+})
+
+test('countConfirmedSubscribers counts only confirmed rows for that site', () => {
+  const store = freshStore()
+  confirmed(store, 's', 'a@x.dev', 1)
+  store.savePendingSubscriber('s', 'b@x.dev', fields(2))
+  confirmed(store, 'other', 'c@x.dev', 3)
+  assert.equal(store.countConfirmedSubscribers('s'), 1)
+})
+
+test('fan-out queues one delivery per confirmed subscriber per new post', () => {
+  const store = freshStore()
+  confirmed(store, 's', 'a@x.dev', 1)
+  confirmed(store, 's', 'b@x.dev', 2)
+  store.savePendingSubscriber('s', 'c@x.dev', fields(3))
+  confirmed(store, 'other', 'd@x.dev', 4)
+  const queued = store.applyChanges('s', { ...none, create: [entry('a'), entry('b')] })
+  assert.equal(queued, 4)
+  const due = store.listDueDeliveries(new Date(), 10)
+  assert.equal(due.length, 4)
+  assert.ok(due.every((d) => d.status === 'queued' && d.attempts === 0 && d.siteId === 's' && d.lastError === null))
+  assert.equal(store.getPost('s', entry('a').id)?.slug, 'a')
+  assert.equal(store.getPost('s', 'missing'), undefined)
+})
+
+test('silent first sync, updates and deletes queue nothing', () => {
+  const store = freshStore()
+  confirmed(store, 's', 'a@x.dev', 1)
+  assert.equal(store.applyChanges('s', { ...none, create: [entry('a')], silent: true }), 0)
+  assert.equal(store.applyChanges('s', { ...none, update: [entry('a', { title: 'A2' })] }), 0)
+  assert.equal(store.applyChanges('s', { ...none, delete: [entry('a').id] }), 0)
+  assert.equal(store.applyChanges('s', none), 0)
+  assert.equal(store.listDueDeliveries(new Date(), 10).length, 0)
+})
+
+test('removeSubscriberByToken deletes the subscriber and its queued deliveries', () => {
+  const store = freshStore()
+  const sub = confirmed(store, 's', 'a@x.dev', 1)
+  store.applyChanges('s', { ...none, create: [entry('a')] })
+  assert.equal(store.removeSubscriberByToken('s', 'nope'), false)
+  assert.equal(store.removeSubscriberByToken('s', sub.unsubscribeToken), true)
+  assert.equal(store.getSubscriberById(sub.id), undefined)
+  assert.equal(store.listDueDeliveries(new Date(), 10).length, 0)
+})
+
+test('listDueDeliveries skips future and non-queued rows, ordered by published then id', () => {
+  const store = freshStore()
+  confirmed(store, 's', 'a@x.dev', 1)
+  confirmed(store, 's', 'b@x.dev', 2)
+  const now = new Date('2026-11-03T02:00:00Z')
+  store.applyChanges('s', { ...none, create: [entry('late', { published: new Date('2026-10-05T00:00:00Z') })] }, now)
+  store.applyChanges('s', { ...none, create: [entry('early', { published: new Date('2026-10-02T00:00:00Z') })] }, now)
+  const all = store.listDueDeliveries(now, 10)
+  assert.deepEqual(all.map((d) => d.entryId), [entry('early').id, entry('early').id, entry('late').id, entry('late').id])
+  assert.ok(all[0].id < all[1].id)
+  assert.equal(store.listDueDeliveries(now, 3).length, 3)
+  assert.equal(store.listDueDeliveries(new Date('2026-11-03T01:00:00Z'), 10).length, 0)
+
+  store.markDeliverySent(all[0].id, now)
+  store.markDeliveryRetry(all[1].id, 1, new Date('2026-11-03T03:00:00Z'), 'boom')
+  store.markDeliveryFailed(all[2].id, 7, 'bad')
+  assert.deepEqual(store.listDueDeliveries(now, 10).map((d) => d.id), [all[3].id])
+  const retried = store.listDueDeliveries(new Date('2026-11-03T03:00:00Z'), 10).find((d) => d.id === all[1].id)!
+  assert.equal(retried.attempts, 1)
+  assert.equal(retried.lastError, 'boom')
+  store.deleteDelivery(all[3].id)
+  assert.equal(store.listDueDeliveries(now, 10).length, 0)
+})
+
+test('deleteExpiredPending removes pending rows past expiry, keeps confirmed', () => {
+  const store = freshStore()
+  confirmed(store, 's', 'a@x.dev', 1)
+  store.savePendingSubscriber('s', 'b@x.dev', fields(2))
+  assert.equal(store.deleteExpiredPending(new Date('2026-11-04T00:00:00Z')), 0)
+  assert.equal(store.deleteExpiredPending(new Date('2026-11-06T00:00:00Z')), 1)
+  assert.equal(store.getSubscriber('s', 'b@x.dev'), undefined)
+  assert.ok(store.getSubscriber('s', 'a@x.dev'))
+})
+
+test('countConfirmationsSince counts rows with confirmSentAt at or after since', () => {
+  const store = freshStore()
+  store.savePendingSubscriber('s', 'a@x.dev', { ...fields(1), confirmSentAt: '2026-11-03T00:00:00.000Z' })
+  store.savePendingSubscriber('s', 'b@x.dev', { ...fields(2), confirmSentAt: '2026-11-03T00:30:00.000Z' })
+  store.savePendingSubscriber('other', 'c@x.dev', { ...fields(3), confirmSentAt: '2026-11-03T00:30:00.000Z' })
+  assert.equal(store.countConfirmationsSince('s', new Date('2026-11-03T00:00:00Z')), 2)
+  assert.equal(store.countConfirmationsSince('s', new Date('2026-11-03T00:10:00Z')), 1)
+})
