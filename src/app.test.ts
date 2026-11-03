@@ -13,7 +13,7 @@ import { captureLogs } from '../test/logs.ts'
 import { expiredLinkPage, unsubscribePage, unsubscribeUrl } from './emails.ts'
 import type { Config } from './config.ts'
 
-function setup(sync: (siteId: string) => Promise<SyncResult> = async () => ({ new: 1, updated: 0, deleted: 0 })) {
+function setup(sync: (siteId: string) => Promise<SyncResult> = async () => ({ new: 1, updated: 0, deleted: 0, emails: 0 })) {
   const store = new Store(new DatabaseSync(':memory:'))
   store.migrate()
   const federation = buildFederation({ config: TEST_CONFIG, store, kv: new MemoryKvStore() })
@@ -85,7 +85,7 @@ test('sync requires the right bearer token', async () => {
 
   const res = await request('/sites/inner-monologue/sync', { method: 'POST', headers: { authorization: 'Bearer secret' } })
   assert.equal(res.status, 200)
-  assert.deepEqual(await res.json(), { new: 1, updated: 0, deleted: 0 })
+  assert.deepEqual(await res.json(), { new: 1, updated: 0, deleted: 0, emails: 0 })
   assert.deepEqual(calls, ['inner-monologue'])
 })
 
@@ -165,7 +165,7 @@ function setupEmail(
   const app = buildApp({
     config,
     federation: buildFederation({ config, store, kv: new MemoryKvStore() }),
-    syncer: { sync: async () => ({ new: 0, updated: 0, deleted: 0 }) },
+    syncer: { sync: async () => ({ new: 0, updated: 0, deleted: 0, emails: 0 }) },
     subscriptions: withSubscriptions ? subscriptions : undefined,
   })
   const request = (path: string, init?: RequestInit) => app.request(`https://ap.test${path}`, init)

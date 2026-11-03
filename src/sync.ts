@@ -7,8 +7,9 @@ import type { Store } from './store.ts'
 import { activityFor } from './federation.ts'
 
 const logger = getLogger(['warmhole', 'sync'])
+const emailLogger = getLogger(['warmhole', 'email'])
 
-export type SyncResult ={ new: number; updated: number; deleted: number }
+export type SyncResult = { new: number; updated: number; deleted: number; emails: number }
 
 export type SyncDeps = {
   config: Config
@@ -50,12 +51,16 @@ export class Syncer {
     const stored = store.listPosts(siteId).map((p) => ({ entryId: p.entryId, contentHash: p.contentHash, deleted: p.deletedAt !== null, published: p.published }))
     const changes = diff(stored, entries, { deleteMissing: site.deleteMissing })
 
-    store.applyChanges(siteId, changes)
+    const emails = store.applyChanges(siteId, changes)
+    if (emails > 0) {
+      const count = store.countConfirmedSubscribers(siteId)
+      for (const created of changes.create) emailLogger.info('{site}: emailing "{title}" to {count} subscribers', { site: siteId, title: created.title, count })
+    }
     await this.flushPending(siteId)
 
-    const result = { new: changes.create.length, updated: changes.update.length, deleted: changes.delete.length }
+    const result = { new: changes.create.length, updated: changes.update.length, deleted: changes.delete.length, emails }
     if (changes.silent) logger.info('first sync of {site} stored {new} posts without sending them', { site: siteId, ...result })
-    else logger.info('synced {site}: {new} new, {updated} updated, {deleted} deleted', { site: siteId, ...result })
+    else logger.info('synced {site}: {new} new, {updated} updated, {deleted} deleted, {emails} emails', { site: siteId, ...result })
     return result
   }
 
