@@ -42,6 +42,11 @@ export function smtpMailer(smtp: SmtpConfig): Mailer {
     secure: smtp.port === 465,
     requireTLS: smtp.port !== 465,
     auth: { user: smtp.user, pass: smtp.password },
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
+    pool: true,
+    maxConnections: 1,
   })
   return {
     async send(message) {
