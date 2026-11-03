@@ -1,4 +1,9 @@
 import { readFileSync } from 'node:fs'
+import { isEmailAddress } from './address.ts'
+
+export type SmtpConfig = { host: string; port: number; user: string; password: string; pauseMs: number }
+
+export type SiteEmailConfig = { from: string; checkInboxUrl: URL; confirmedUrl: URL; unsubscribedUrl: URL }
 
 export type SiteConfig = {
   id: string
@@ -10,9 +15,10 @@ export type SiteConfig = {
   icon: URL | undefined
   syncToken: string
   deleteMissing: boolean
+  email: SiteEmailConfig | undefined
 }
 
-export type Config = { publicUrl: URL; sites: SiteConfig[] }
+export type Config = { publicUrl: URL; sites: SiteConfig[]; smtp: SmtpConfig | undefined }
 
 export type Env = Record<string, string | undefined>
 
@@ -56,6 +62,48 @@ function secureUrl(value: unknown, field: string): URL {
   return url
 }
 
+function integerIn(obj: Record<string, unknown>, key: string, at: string, min: number, max: number, fallback: number): number {
+  const value = obj[key]
+  if (value === undefined) return fallback
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
+    throw new ConfigError(`${at}.${key} must be an integer between ${min} and ${max}`)
+  }
+  return value
+}
+
+function envValue(obj: Record<string, unknown>, key: string, at: string, env: Env): string {
+  const name = requiredString(obj, key, at)
+  const value = env[name]
+  if (!value) throw new ConfigError(`${at}.${key}: environment variable ${name} is not set`)
+  return value
+}
+
+function parseSmtp(raw: unknown, env: Env): SmtpConfig | undefined {
+  if (raw === undefined) return undefined
+  if (!isRecord(raw)) throw new ConfigError('smtp must be an object')
+  return {
+    host: requiredString(raw, 'host', 'smtp'),
+    port: integerIn(raw, 'port', 'smtp', 1, 65535, 587),
+    user: envValue(raw, 'userEnv', 'smtp', env),
+    password: envValue(raw, 'passwordEnv', 'smtp', env),
+    pauseMs: integerIn(raw, 'pauseMs', 'smtp', 0, Number.MAX_SAFE_INTEGER, 1000),
+  }
+}
+
+function parseSiteEmail(raw: unknown, at: string): SiteEmailConfig | undefined {
+  if (raw === undefined) return undefined
+  if (!isRecord(raw)) throw new ConfigError(`${at}.email must be an object`)
+  const from = requiredString(raw, 'from', `${at}.email`)
+  const address = from.match(/<([^<>]*)>\s*$/)?.[1] ?? from
+  if (!isEmailAddress(address.trim())) throw new ConfigError(`${at}.email.from is not a valid address: ${from}`)
+  return {
+    from,
+    checkInboxUrl: secureUrl(raw.checkInboxUrl, `${at}.email.checkInboxUrl`),
+    confirmedUrl: secureUrl(raw.confirmedUrl, `${at}.email.confirmedUrl`),
+    unsubscribedUrl: secureUrl(raw.unsubscribedUrl, `${at}.email.unsubscribedUrl`),
+  }
+}
+
 export function parseConfig(raw: unknown, env: Env): Config {
   if (!isRecord(raw)) throw new ConfigError('config must be a JSON object')
 
@@ -65,6 +113,8 @@ export function parseConfig(raw: unknown, env: Env): Config {
   }
 
   if (!Array.isArray(raw.sites) || raw.sites.length === 0) throw new ConfigError('sites must be a non-empty array')
+
+  const smtp = parseSmtp(raw.smtp, env)
 
   const ids = new Set<string>()
   const handles = new Set<string>()
@@ -99,10 +149,14 @@ export function parseConfig(raw: unknown, env: Env): Config {
       throw new ConfigError(`${at}.deleteMissing must be true or false`)
     }
 
-    return { id, handle, domain, feedUrl, name, summary, icon, syncToken, deleteMissing: entry.deleteMissing === true }
+    const email = parseSiteEmail(entry.email, at)
+
+    return { id, handle, domain, feedUrl, name, summary, icon, syncToken, deleteMissing: entry.deleteMissing === true, email }
   })
 
-  return { publicUrl, sites }
+  if (!smtp && sites.some((site) => site.email)) throw new ConfigError('smtp is required when a site has email')
+
+  return { publicUrl, sites, smtp }
 }
 
 export function loadConfig(path: string, env: Env = process.env): Config {

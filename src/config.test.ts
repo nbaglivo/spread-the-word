@@ -89,3 +89,45 @@ test('rejects missing fields and bad shapes', () => {
   assert.throws(() => parseConfig({ publicUrl: 'https://ap.nbaglivo.dev', sites: [site({ domain: 'localhost' })] }, env), /sites\[0\]\.domain must be a hostname/)
   assert.throws(() => parseConfig({ publicUrl: 'https://ap.nbaglivo.dev', sites: [site({ deleteMissing: 'yes' })] }, env), /sites\[0\]\.deleteMissing must be true or false/)
 })
+
+const emailBlock = {
+  from: 'Inner <nico@nbaglivo.dev>',
+  checkInboxUrl: 'https://innermonologue.nbaglivo.dev/check-inbox',
+  confirmedUrl: 'https://innermonologue.nbaglivo.dev/confirmed',
+  unsubscribedUrl: 'https://innermonologue.nbaglivo.dev/unsubscribed',
+}
+const smtpBlock = { host: 'smtp.migadu.com', userEnv: 'SMTP_USER', passwordEnv: 'SMTP_PASSWORD' }
+const smtpEnv = { ...env, SMTP_USER: 'u', SMTP_PASSWORD: 'p' }
+const withEmail = (email: Record<string, unknown> = {}, smtp: Record<string, unknown> | undefined = smtpBlock, e: Record<string, string> = smtpEnv) =>
+  parseConfig({ publicUrl: 'https://ap.nbaglivo.dev', smtp, sites: [site({ email: { ...emailBlock, ...email } })] }, e)
+
+test('parses smtp and site email', () => {
+  const config = withEmail()
+  assert.deepEqual(config.smtp, { host: 'smtp.migadu.com', port: 587, user: 'u', password: 'p', pauseMs: 1000 })
+  assert.ok(config.sites[0].email?.confirmedUrl instanceof URL)
+  assert.equal(config.sites[0].email?.from, 'Inner <nico@nbaglivo.dev>')
+})
+
+test('sites without email need no smtp', () => {
+  const config = parseConfig({ publicUrl: 'https://ap.nbaglivo.dev', sites: [site()] }, env)
+  assert.equal(config.smtp, undefined)
+  assert.equal(config.sites[0].email, undefined)
+})
+
+test('accepts from as bare address or with a display name', () => {
+  assert.ok(withEmail({ from: 'nico@nbaglivo.dev' }))
+  assert.ok(withEmail({ from: 'Name <nico@nbaglivo.dev>' }))
+})
+
+test('rejects bad smtp and email config', () => {
+  assert.throws(
+    () => parseConfig({ publicUrl: 'https://ap.nbaglivo.dev', sites: [site({ email: emailBlock })] }, smtpEnv),
+    /smtp is required/,
+  )
+  assert.throws(() => withEmail({}, smtpBlock, env), /smtp\.userEnv/)
+  assert.throws(() => withEmail({}, { ...smtpBlock, port: 0 }), /smtp\.port/)
+  assert.throws(() => withEmail({}, { ...smtpBlock, port: '587' }), /smtp\.port/)
+  assert.throws(() => withEmail({}, { ...smtpBlock, pauseMs: -1 }), /smtp\.pauseMs/)
+  assert.throws(() => withEmail({ from: 'not an address' }), /email\.from/)
+  assert.throws(() => withEmail({ confirmedUrl: 'http://example.dev/x' }), /email\.confirmedUrl must use https/)
+})

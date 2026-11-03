@@ -25,8 +25,10 @@ export const TEST_CONFIG: Config = {
       icon: undefined,
       syncToken: 'secret',
       deleteMissing: true,
+      email: undefined,
     },
   ],
+  smtp: undefined,
 }
 
 async function readBody(req: IncomingMessage): Promise<string> {
