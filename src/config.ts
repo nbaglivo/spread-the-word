@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { isEmailAddress } from './address.ts'
+import { HOSTNAME, isEmailAddress } from './address.ts'
 
 export type SmtpConfig = { host: string; port: number; user: string; password: string; pauseMs: number }
 
@@ -28,7 +28,6 @@ export class ConfigError extends Error {
 
 const ID = /^[a-z0-9][a-z0-9-]*$/
 const HANDLE = /^[a-z0-9_]+$/
-const HOSTNAME = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
