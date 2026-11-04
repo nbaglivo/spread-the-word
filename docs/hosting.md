@@ -155,8 +155,7 @@ tab.
 
 ### One-time setup
 
-Do steps 1, 2, 4 and 5 before the workflow first reaches `main`. The first
-run then fails safely at the pull (step 3), and nothing on the box changes.
+Do steps 1, 2, 4 and 5 before the workflow first reaches `main`.
 
 1. Create a deploy key. In `/root/.ssh/authorized_keys` on the box, add its
    public half locked to the script:
@@ -169,9 +168,10 @@ run then fails safely at the pull (step 3), and nothing on the box changes.
    (`91.98.0.37`) and `DEPLOY_KNOWN_HOSTS` (the output of
    `ssh-keyscan -t ed25519 91.98.0.37`). Create a `production` environment
    and limit its deployment branches to `main`.
-3. After the first image push, make the GHCR package public: GitHub →
-   Packages → warmhole → Settings → Change visibility. New packages start
-   private even when the repo is public. Then re-run the `deploy` workflow.
+3. The GHCR package is public because the repo is, so the box pulls
+   without logging in. If a pull is ever denied, check GitHub → Packages →
+   warmhole → Settings → visibility, then re-run the `deploy` workflow. A
+   denied pull changes nothing on the box.
 4. Copy `scripts/deploy.sh` to `/opt/warmhole/deploy.sh` and `chmod 700` it.
    Deploys never update it, so copy it again by hand when it changes.
 5. In the box's `compose.yml`, replace the warmhole service's `build: .`
