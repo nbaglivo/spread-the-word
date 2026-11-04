@@ -48,6 +48,6 @@ jobs:
           docker pull $IMAGE:$TAG
           \`\`\`
 
-          [All images](https://github.com/nbaglivo/warmhole/pkgs/container/spread-the-word)
+          [All images](https://github.com/nbaglivo/spread-the-word/pkgs/container/spread-the-word)
           EOF
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
