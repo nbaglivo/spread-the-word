@@ -5,18 +5,21 @@
 
 # spread-the-word
 
-A warm little portal from your static site into the fediverse.
+Spread the word when your site publishes something new, across the fediverse
+and by email.
 
-spread-the-word is a small, self-hosted server that turns your site's feed
-into a fediverse account. People follow `@you@your-site.dev` from Mastodon, and
-each new post shows up in their timeline. Your site stays static.
+spread-the-word is a small, self-hosted server that takes each new item in your
+site's feed to the people who want it. They can follow `@you@your-site.dev`
+from Mastodon and see it in their timeline, or subscribe by email and find it
+in their inbox. Your site stays static.
 
 ## How it works
 
 Your site keeps publishing its RSS, Atom or JSON Feed. After each deploy, it
-pings spread-the-word, which reads the feed, works out what's new, edited or
-removed, and sends it to your followers. Follows are accepted automatically.
-Likes, boosts and replies are ignored for now.
+pings spread-the-word, which reads the feed and works out what's new, edited
+or removed. Your fediverse followers get all of that, and email subscribers get
+each new post. Follows are accepted automatically. Likes, boosts and replies
+are ignored for now.
 
 Design and diagrams: [`docs/design.html`](docs/design.html).
 
