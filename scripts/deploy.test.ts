@@ -29,7 +29,13 @@ function deploy(opts: FakeBinOptions, args: string[] = [SHA], extraEnv: NodeJS.P
     stdout: result.stdout,
     stderr: result.stderr,
     calls,
-    actions: calls.filter((c) => c.startsWith('docker ') && !c.startsWith('docker image ')),
+    actions: calls.filter(
+      (c) =>
+        c.startsWith('docker ') &&
+        !c.startsWith('docker image ') &&
+        !c.startsWith('docker compose ps') &&
+        !c.startsWith('docker inspect'),
+    ),
   }
 }
 
@@ -74,6 +80,25 @@ test('rolls back when the new image is unhealthy', () => {
   assert.match(run.stderr, /rolled back/)
   assert.ok(run.actions.includes('docker tag warmhole:previous warmhole:current'), run.actions.join('\n'))
   assert.equal(run.actions.filter((c) => c === UP).length, 2)
+})
+
+test('rolls back when compose up fails for the new image', () => {
+  const run = deploy({ images: ['warmhole:current'], health: ['ok'], upFails: 1 })
+  assert.equal(run.status, 1)
+  assert.match(run.stderr, /rolled back/)
+  assert.ok(run.actions.includes('docker tag warmhole:previous warmhole:current'), run.actions.join('\n'))
+})
+
+test('exits 3 when compose up fails during the rollback too', () => {
+  const run = deploy({ images: ['warmhole:current'], health: ['ok'], upFails: 2 })
+  assert.equal(run.status, 3)
+})
+
+test('does not report success while compose still runs the old image', () => {
+  const run = deploy({ images: ['warmhole-warmhole'], health: ['ok', 'ok'], staleCompose: true })
+  assert.equal(run.status, 1)
+  assert.match(run.stderr, /not running warmhole:current/)
+  assert.doesNotMatch(run.stdout, /deployed/)
 })
 
 test('exits 3 when the rollback is unhealthy too', () => {

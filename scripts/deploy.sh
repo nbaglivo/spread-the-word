@@ -44,6 +44,30 @@ prune() {
     while read -r old; do docker rmi "$REPO:$old" || true; done
 }
 
+runs_current() {
+  local cid running wanted
+  cid="$(docker compose ps -q warmhole)"
+  [[ -n "$cid" ]] || return 1
+  running="$(docker inspect -f '{{.Image}}' "$cid")"
+  wanted="$(docker image inspect -f '{{.Id}}' warmhole:current)"
+  [[ "$running" == "$wanted" ]]
+}
+
+switch() {
+  if ! up; then
+    echo "docker compose up failed" >&2
+    return 1
+  fi
+  if ! healthy; then
+    echo "health check failed" >&2
+    return 1
+  fi
+  if ! runs_current; then
+    echo "the warmhole container is not running warmhole:current (is compose.yml still on build: .?)" >&2
+    return 1
+  fi
+}
+
 if ! docker pull "$REPO:$sha"; then
   echo "pull of $REPO:$sha failed, nothing changed" >&2
   exit 1
@@ -56,25 +80,23 @@ elif exists warmhole-warmhole; then
 fi
 
 docker tag "$REPO:$sha" warmhole:current
-up
 
-if healthy; then
+if switch; then
   prune || true
   echo "deployed $sha"
   exit 0
 fi
 
 if ! exists warmhole:previous; then
-  echo "health check failed and there is no previous image to roll back to" >&2
+  echo "deploy of $sha failed and there is no previous image to roll back to" >&2
   exit 3
 fi
 
-echo "health check failed for $sha, rolling back" >&2
+echo "deploy of $sha failed, rolling back" >&2
 docker tag warmhole:previous warmhole:current
-up
-if healthy; then
-  echo "health check failed, rolled back to the previous image" >&2
+if switch; then
+  echo "rolled back to the previous image" >&2
   exit 1
 fi
-echo "rollback is unhealthy too" >&2
+echo "rollback failed too" >&2
 exit 3
