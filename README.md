@@ -54,12 +54,12 @@ Plan: [`docs/superpowers/plans/2026-10-16-reader-api.md`](docs/superpowers/plans
    each site's private keys):
 
    ```bash
-   docker build -t warmhole .
+   docker build -t spread-the-word .
    docker run -d -p 8080:8080 \
      -e MY_BLOG_SYNC_TOKEN="$(openssl rand -hex 32)" \
      -v "$PWD/warmhole.json:/config/warmhole.json:ro" \
      -v warmhole-data:/data \
-     warmhole
+     spread-the-word
    ```
 
 3. Put it behind HTTPS at the `publicUrl` from your config.
@@ -73,8 +73,8 @@ cp .env.example .env
 docker compose up -d
 ```
 
-This pulls the latest release, `ghcr.io/nbaglivo/warmhole:latest`. Each
-release is also tagged with its version (`:v0.1.0`) to pin one, and `:main`
+This pulls the latest release, `ghcr.io/nbaglivo/spread-the-word:latest`. Each
+release is also tagged with its version (`:v0.1.1`) to pin one, and `:main`
 follows every push. Every push to `main` that passes the tests deploys itself
 to the author's server; see [docs/hosting.md](docs/hosting.md#deploys).
 

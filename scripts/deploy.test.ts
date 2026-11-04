@@ -8,7 +8,7 @@ import { fakeBin, type FakeBinOptions } from '../test/fake-bin.ts'
 
 const SCRIPT = join(import.meta.dirname, 'deploy.sh')
 const SHA = 'a'.repeat(40)
-const IMAGE = `ghcr.io/nbaglivo/warmhole:${SHA}`
+const IMAGE = `ghcr.io/nbaglivo/spread-the-word:${SHA}`
 const UP = 'docker compose up -d --no-deps warmhole'
 
 function deploy(opts: FakeBinOptions, args: string[] = [SHA], extraEnv: NodeJS.ProcessEnv = {}) {
@@ -131,8 +131,8 @@ test('prunes all but the three newest sha tags after a healthy deploy', () => {
   const healthy = deploy({ images: ['warmhole:current'], ghcrTags: tags, health: ['ok'] })
   assert.equal(healthy.status, 0, healthy.stderr)
   assert.deepEqual(healthy.actions.filter((c) => c.startsWith('docker rmi')), [
-    `docker rmi ghcr.io/nbaglivo/warmhole:${tags[3]}`,
-    `docker rmi ghcr.io/nbaglivo/warmhole:${tags[4]}`,
+    `docker rmi ghcr.io/nbaglivo/spread-the-word:${tags[3]}`,
+    `docker rmi ghcr.io/nbaglivo/spread-the-word:${tags[4]}`,
   ])
 
   const rolledBack = deploy({ images: ['warmhole:current'], ghcrTags: tags, health: ['fail', 'fail', 'ok'] })

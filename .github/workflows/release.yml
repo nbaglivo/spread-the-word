@@ -12,7 +12,7 @@ jobs:
   tag-image:
     runs-on: ubuntu-latest
     env:
-      IMAGE: ghcr.io/nbaglivo/warmhole
+      IMAGE: ghcr.io/nbaglivo/spread-the-word
       TAG: ${{ github.event.release.tag_name }}
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -48,6 +48,6 @@ jobs:
           docker pull $IMAGE:$TAG
           \`\`\`
 
-          [All images](https://github.com/nbaglivo/warmhole/pkgs/container/warmhole)
+          [All images](https://github.com/nbaglivo/warmhole/pkgs/container/spread-the-word)
           EOF
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md

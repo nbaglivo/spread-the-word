@@ -43,8 +43,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/nbaglivo/warmhole:${{ github.sha }}
-            ghcr.io/nbaglivo/warmhole:main
+            ghcr.io/nbaglivo/spread-the-word:${{ github.sha }}
+            ghcr.io/nbaglivo/spread-the-word:main
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
