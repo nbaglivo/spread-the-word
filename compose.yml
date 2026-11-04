@@ -1,6 +1,6 @@
 services:
   warmhole:
-    image: ghcr.io/nbaglivo/warmhole:latest
+    image: ghcr.io/nbaglivo/spread-the-word:latest
     restart: unless-stopped
     init: true
     env_file: .env

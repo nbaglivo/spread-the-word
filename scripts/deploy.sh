@@ -5,7 +5,7 @@
 # changed), 2 invalid input, 3 rollback impossible or also failed.
 set -euo pipefail
 
-REPO=ghcr.io/nbaglivo/warmhole
+REPO=ghcr.io/nbaglivo/spread-the-word
 HOST=ap.nbaglivo.dev
 KEEP=3
 dir="${DEPLOY_DIR:-/opt/warmhole}"

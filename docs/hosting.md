@@ -113,7 +113,7 @@ Every push to `main` deploys itself. Only the warmhole container changes.
  push to main
      │
      ▼
- GitHub Actions ── test ──► image ──► ghcr.io/nbaglivo/warmhole:<sha>
+ GitHub Actions ── test ──► image ──► ghcr.io/nbaglivo/spread-the-word:<sha>
      │                                          │
      │ deploy: ssh with the sha only            │ pull
      ▼                                          ▼
@@ -178,8 +178,8 @@ Do steps 1, 2, 4 and 5 before the workflow first reaches `main`.
    and limit its deployment branches to `main`.
 3. The GHCR package is public because the repo is, so the box pulls
    without logging in. If a pull is ever denied, check GitHub → Packages →
-   warmhole → Settings → visibility, then re-run the `deploy` workflow. A
-   denied pull changes nothing on the box.
+   spread-the-word → Settings → visibility, then re-run the `deploy` workflow.
+   A denied pull changes nothing on the box.
 4. Copy `scripts/deploy.sh` to `/opt/warmhole/deploy.sh` and `chmod 700` it.
    Deploys never update it, so copy it again by hand when it changes.
 5. In the box's `compose.yml`, replace the warmhole service's `build: .`
