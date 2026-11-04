@@ -153,6 +153,14 @@ docker tag warmhole:previous warmhole:current && docker compose up -d --no-deps 
 To redeploy `main` without a push, run the `deploy` workflow from the Actions
 tab.
 
+### Releases
+
+Publishing a GitHub release `vX.Y.Z` doesn't rebuild or deploy. The `release`
+workflow adds the tags `:vX.Y.Z` and `:latest` to the image already built for
+that commit, and appends the `docker pull` command to the release notes.
+Release a commit that has reached `main`; any other commit has no image, and
+the workflow fails.
+
 ### One-time setup
 
 Do steps 1, 2, 4 and 5 before the workflow first reaches `main`.
