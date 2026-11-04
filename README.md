@@ -62,8 +62,11 @@ the HTTPS certificate for you. Point your domain's DNS at the server, then:
 ```bash
 cp warmhole.example.json warmhole.json
 cp .env.example .env
-docker compose up -d --build
+docker compose up -d
 ```
+
+This pulls the published image. Every push to `main` that passes the tests
+deploys itself to the author's server; see [docs/hosting.md](docs/hosting.md#deploys).
 
 `.env` sets `WARMHOLE_DOMAIN` (the host of `publicUrl`) and each site's sync
 token. To move to another server, copy `warmhole.json`, `.env` and the

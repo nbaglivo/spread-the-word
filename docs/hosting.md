@@ -100,7 +100,85 @@ cd /opt/warmhole
 docker compose ps
 docker compose logs -f caddy      # certificate issues
 docker compose restart caddy      # retry a certificate now
-docker compose up -d --build      # after pulling changes
+docker compose up -d --no-deps warmhole   # restart warmhole on warmhole:current
 ```
 
 From the laptop: `WARMHOLE_SSH=hetzner scripts/logs -f`.
+
+## Deploys
+
+Every push to `main` deploys itself. Only the warmhole container changes.
+
+```
+ push to main
+     │
+     ▼
+ GitHub Actions ── test ──► image ──► ghcr.io/nbaglivo/warmhole:<sha>
+     │                                          │
+     │ deploy: ssh with the sha only            │ pull
+     ▼                                          ▼
+ Hetzner box ── /opt/warmhole/deploy.sh <sha>
+     │  tag warmhole:current as warmhole:previous
+     │  tag the new image as warmhole:current
+     │  docker compose up -d --no-deps warmhole
+     │  check https://ap.nbaglivo.dev/healthz through Caddy
+     ▼
+   "ok"            ──► done, keep the 3 newest images
+   no "ok" in 30s  ──► put warmhole:previous back, the run fails
+```
+
+A deploy never touches Caddy, the `Caddyfile`, Ghost, `.env` or
+`warmhole.json`. Those stay hand-managed on the box.
+
+The deploy key in GitHub can only run `deploy.sh` with a commit sha. It
+can't open a shell or run anything else.
+
+`deploy.sh` exits with:
+
+- `0`: deployed.
+- `1`: failed, and the previous image is running (or nothing changed).
+- `2`: not a commit sha.
+- `3`: rollback impossible or also unhealthy. Look now.
+
+### By hand
+
+```bash
+ssh hetzner
+cd /opt/warmhole
+docker image inspect warmhole:current --format '{{.RepoTags}}'   # what runs
+/opt/warmhole/deploy.sh <full sha>                                 # redeploy a commit
+docker tag warmhole:previous warmhole:current && docker compose up -d --no-deps warmhole   # roll back
+```
+
+To redeploy `main` without a push, run the `deploy` workflow from the Actions
+tab.
+
+### One-time setup
+
+1. Create a deploy key. In `/root/.ssh/authorized_keys` on the box, add its
+   public half locked to the script:
+
+   ```
+   restrict,command="/opt/warmhole/deploy.sh" ssh-ed25519 AAAA… github-deploy
+   ```
+
+2. Add the repo secrets `DEPLOY_SSH_KEY` (the private key), `DEPLOY_HOST`
+   (`91.98.0.37`) and `DEPLOY_KNOWN_HOSTS` (the output of
+   `ssh-keyscan -t ed25519 91.98.0.37`). Create a `production` environment.
+3. After the first image push, make the GHCR package public: GitHub →
+   Packages → warmhole → Settings → Change visibility. New packages start
+   private even when the repo is public.
+4. Copy `scripts/deploy.sh` to `/opt/warmhole/deploy.sh` and `chmod 700` it.
+   Deploys never update it, so copy it again by hand when it changes.
+5. In the box's `compose.yml`, replace the warmhole service's `build: .`
+   with:
+
+   ```yaml
+       image: warmhole:current
+       pull_policy: never
+   ```
+
+   Keep everything else, including Caddy's `edge` network.
+6. After the first successful deploy, remove the old source files from
+   `/opt/warmhole`. Keep `compose.yml`, `Caddyfile`, `.env`, `warmhole.json`
+   and `deploy.sh`.

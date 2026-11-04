@@ -1,6 +1,6 @@
 services:
   warmhole:
-    build: .
+    image: ghcr.io/nbaglivo/warmhole:main
     restart: unless-stopped
     init: true
     env_file: .env
