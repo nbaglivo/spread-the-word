@@ -7,14 +7,14 @@
 
 A warm little portal from your static site into the fediverse.
 
-warmhole is a small, self-hosted server that turns your site's feed into a
-fediverse account. People follow `@you@your-site.dev` from Mastodon, and each
-new post shows up in their timeline. Your site stays static.
+spread-the-word is a small, self-hosted server that turns your site's feed
+into a fediverse account. People follow `@you@your-site.dev` from Mastodon, and
+each new post shows up in their timeline. Your site stays static.
 
 ## How it works
 
 Your site keeps publishing its RSS, Atom or JSON Feed. After each deploy, it
-pings warmhole. warmhole reads the feed, works out what's new, edited or
+pings spread-the-word, which reads the feed, works out what's new, edited or
 removed, and sends it to your followers. Follows are accepted automatically.
 Likes, boosts and replies are ignored for now.
 
@@ -24,7 +24,7 @@ Design and diagrams: [`docs/design.html`](docs/design.html).
 
 v1 only publishes: your feed goes out to your followers. The reader API adds
 the other direction. Your site's account follows other fediverse accounts,
-warmhole keeps what they post and boost, and one private reader (Coffee
+spread-the-word keeps what they post and boost, and one private reader (Coffee
 Companion) pulls it over HTTP:
 
 - `POST` / `DELETE /reader/v1/sites/{siteId}/following` to follow or unfollow
@@ -32,7 +32,7 @@ Companion) pulls it over HTTP:
 - `GET /reader/v1/sites/{siteId}/items` to page through what arrived
 
 It serves posts from accounts you follow, not your own published posts. A blog
-appears only if it publishes over ActivityPub (another warmhole site, or
+appears only if it publishes over ActivityPub (another spread-the-word site, or
 WordPress with the ActivityPub plugin). Plain RSS feeds aren't fetched. The
 following is done by your blog's own account, so the accounts you follow see
 a follow from it.
@@ -61,8 +61,8 @@ Plan: [`docs/superpowers/plans/2026-10-16-reader-api.md`](docs/superpowers/plans
 
 3. Put it behind HTTPS at the `publicUrl` from your config.
 
-On a server of your own, `compose.yml` runs warmhole behind Caddy, which gets
-the HTTPS certificate for you. Point your domain's DNS at the server, then:
+On a server of your own, `compose.yml` runs spread-the-word behind Caddy, which
+gets the HTTPS certificate for you. Point your domain's DNS at the server, then:
 
 ```bash
 cp warmhole.example.json warmhole.json
@@ -99,7 +99,7 @@ Without Docker: `mise install && npm ci && npm start`. Settings come from
 2. **Ping after deploy.** In GitHub Actions:
 
    ```yaml
-   - name: Notify warmhole
+   - name: Notify spread-the-word
      run: >
        curl --fail --retry 3 -X POST
        -H "Authorization: Bearer ${{ secrets.WARMHOLE_SYNC_TOKEN }}"
@@ -154,12 +154,12 @@ inbox. It works on its own, with or without any fediverse followers.
 
 2. **Sender domain.** The domain in `from` must be one your SMTP account may
    send for. With Migadu, set up SPF and DKIM for it, or mail lands in spam.
-   warmhole doesn't check this.
+   spread-the-word doesn't check this.
 
 3. **Three pages on your site.** One telling people to check their inbox, one
    for a confirmed subscription, one for an unsubscribe.
 
-4. **The form**, pointing at your warmhole:
+4. **The form**, pointing at your spread-the-word server:
 
    ```html
    <form method="post" action="https://ap.example.dev/sites/my-blog/subscribe">
@@ -189,7 +189,7 @@ retries, so a mail server outage doesn't hold up syncs or federation.
 
 ## Watch what it does
 
-warmhole logs one JSON line per event: each sync and what it found, each
+spread-the-word logs one JSON line per event: each sync and what it found, each
 follow and unfollow, each delivery and any follower it gave up on. With email
 on, it also logs subscribers joining and leaving and each email sent or failed
 (addresses are masked).
