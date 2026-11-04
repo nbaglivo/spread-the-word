@@ -1,4 +1,9 @@
-# warmhole
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
+  <img src="docs/logo.svg" alt="A knife spreading butter on a slice of bread" width="160">
+</picture>
+
+# spread-the-word
 
 A warm little portal from your static site into the fediverse.
 
