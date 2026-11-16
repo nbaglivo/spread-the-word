@@ -219,3 +219,8 @@ scripts/logs --since 1h
 npm test
 npm run typecheck
 ```
+
+## License
+
+[AGPL-3.0](LICENSE). If you run a modified spread-the-word for others, share
+your changes.
