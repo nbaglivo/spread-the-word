@@ -1,13 +1,10 @@
-name: deploy
+name: ci
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
-
-concurrency:
-  group: deploy
-  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -24,7 +21,7 @@ jobs:
 
   image:
     needs: test
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,23 +44,3 @@ jobs:
             ghcr.io/nbaglivo/spread-the-word:main
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  deploy:
-    needs: image
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Install the deploy key
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-        run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
-          chmod 600 ~/.ssh/deploy
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
-      - name: Deploy on the box
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-        run: ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes "root@$DEPLOY_HOST" "$GITHUB_SHA"
