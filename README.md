@@ -84,7 +84,7 @@ token. To move to another server, copy `stw.json`, `.env` and the
 `publicUrl` the same: it is your account's identity in the fediverse.
 
 Without Docker: `mise install && npm ci && npm start`. Settings come from
-`WARMHOLE_CONFIG` (default `./stw.json`), `WARMHOLE_DB` (default
+`STW_CONFIG` (default `./stw.json`), `WARMHOLE_DB` (default
 `./data/warmhole.db`) and `PORT` (default `8080`).
 
 ## Connect a site

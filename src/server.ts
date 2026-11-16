@@ -17,7 +17,7 @@ import { EmailWorker } from './email-worker.ts'
 await setupLogging()
 const logger = getLogger(['warmhole'])
 
-const config = loadConfig(process.env.WARMHOLE_CONFIG ?? './stw.json')
+const config = loadConfig(process.env.STW_CONFIG ?? './stw.json')
 const dbPath = process.env.WARMHOLE_DB ?? './data/warmhole.db'
 mkdirSync(dirname(dbPath), { recursive: true })
 
