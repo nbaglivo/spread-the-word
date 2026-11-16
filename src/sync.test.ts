@@ -153,7 +153,7 @@ test('each sync logs one line with what changed', async () => {
   await syncer.sync('inner-monologue')
   setFeed([entry('a', { title: 'Edited' }), entry('b'), entry('c')])
   await syncer.sync('inner-monologue')
-  assert.deepEqual(logs.lines('warmhole.sync'), [
+  assert.deepEqual(logs.lines('stw.sync'), [
     'first sync of inner-monologue stored 2 posts without sending them',
     'synced inner-monologue: 1 new, 1 updated, 0 deleted, 0 emails',
   ])
@@ -180,7 +180,7 @@ test('new posts queue emails and report them', async () => {
   await syncer.sync('inner-monologue')
   setFeed([entry('a'), entry('b')])
   assert.deepEqual(await syncer.sync('inner-monologue'), { new: 1, updated: 0, deleted: 0, emails: 2 })
-  assert.deepEqual(logs.lines('warmhole.email'), ['inner-monologue: emailing Title b to 2 subscribers'])
+  assert.deepEqual(logs.lines('stw.email'), ['inner-monologue: emailing Title b to 2 subscribers'])
 })
 
 test('a site without email queues nothing and logs nothing', async () => {
@@ -192,7 +192,7 @@ test('a site without email queues nothing and logs nothing', async () => {
   setFeed([entry('a'), entry('b')])
   assert.deepEqual(await syncer.sync('inner-monologue'), { new: 1, updated: 0, deleted: 0, emails: 0 })
   assert.equal(store.listDueDeliveries(new Date(Date.now() + 1000), 10).length, 0)
-  assert.deepEqual(logs.lines('warmhole.email'), [])
+  assert.deepEqual(logs.lines('stw.email'), [])
 })
 
 test('edits and re-syncs queue no emails', async () => {
@@ -229,7 +229,7 @@ test('fediverse hand-off failing still leaves emails queued', async () => {
 
   const later = new Date(Date.now() + 1000)
   assert.equal(store.listDueDeliveries(later, 10).length, 2)
-  assert.deepEqual(logs.lines('warmhole.email'), ['inner-monologue: emailing Title b to 2 subscribers'])
+  assert.deepEqual(logs.lines('stw.email'), ['inner-monologue: emailing Title b to 2 subscribers'])
 
   assert.deepEqual(await syncer.sync('inner-monologue'), { new: 0, updated: 0, deleted: 0, emails: 0 })
   assert.equal(store.listDueDeliveries(later, 10).length, 2)

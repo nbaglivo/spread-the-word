@@ -14,7 +14,7 @@ export async function setupLogging(sink: Sink = getConsoleSink({ formatter: form
     contextLocalStorage: new AsyncLocalStorage(),
     sinks: { main: sink },
     loggers: [
-      { category: ['warmhole'], sinks: ['main'], lowestLevel: 'info' },
+      { category: ['stw'], sinks: ['main'], lowestLevel: 'info' },
       { category: ['fedify'], sinks: ['main'], lowestLevel: 'info' },
       { category: ['logtape', 'meta'], sinks: ['main'], lowestLevel: 'warning' },
     ],

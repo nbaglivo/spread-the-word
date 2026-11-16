@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>warmhole design</title>
+<title>spread-the-word design</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,7 +81,7 @@ pre { margin: 0; background: var(--tint); border-radius: 5px; padding: 14px 16px
 <body>
 <main>
   <header>
-    <h1>warmhole</h1>
+    <h1>spread-the-word</h1>
     <p class="sub">A warm little portal from your static site into the fediverse. A small Hono and Fedify server that turns a static site's feed into a fediverse account people can follow. You run your own copy, and one copy can serve a few sites.</p>
     <div class="meta">design</div>
   </header>
@@ -444,7 +444,6 @@ pre { margin: 0; background: var(--tint); border-radius: 5px; padding: 14px 16px
     <div class="wide">
       <h2>9. Repository and stack</h2>
       <ul>
-        <li>The written spec lives next to this page, in <code>docs/superpowers/specs/2026-10-15-warmhole-design.md</code>.</li>
         <li>TypeScript, run directly by Node 26 with no build step. Tests with <code>node:test</code>. Node version pinned in <code>mise.toml</code>.</li>
         <li>Dependencies: <code>hono</code>, <code>@hono/node-server</code>, <code>@fedify/fedify</code>, <code>@fedify/hono</code>, <code>@fedify/sqlite</code> and a feed parser.</li>
         <li>A <code>Dockerfile</code> based on <code>node:26-slim</code>, with SQLite on a mounted volume.</li>

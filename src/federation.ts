@@ -30,7 +30,7 @@ import type { Config } from './config.ts'
 import type { Follower, PendingActivity, PostRow, Store, StoredKey } from './store.ts'
 
 const PAGE_SIZE = 20
-const logger = getLogger(['warmhole', 'followers'])
+const logger = getLogger(['stw', 'followers'])
 
 export type FederationDeps = {
   config: Config

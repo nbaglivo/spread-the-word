@@ -1,12 +1,12 @@
 services:
-  warmhole:
+  stw:
     image: ghcr.io/nbaglivo/spread-the-word:latest
     restart: unless-stopped
     init: true
     env_file: .env
     volumes:
       - ./stw.json:/config/stw.json:ro
-      - warmhole-data:/data
+      - stw-data:/data
 
   caddy:
     image: caddy:2.10
@@ -21,9 +21,9 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
-      - warmhole
+      - stw
 
 volumes:
-  warmhole-data:
+  stw-data:
   caddy-data:
   caddy-config:

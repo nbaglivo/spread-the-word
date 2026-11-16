@@ -7,7 +7,7 @@ RUN npm ci --omit=dev
 COPY src ./src
 RUN mkdir -p /data /config && chown node:node /data
 ENV NODE_ENV=production \
-    WARMHOLE_DB=/data/warmhole.db \
+    STW_DB=/data/stw.db \
     STW_CONFIG=/config/stw.json \
     PORT=8080
 USER node

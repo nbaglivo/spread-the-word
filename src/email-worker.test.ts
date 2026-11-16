@@ -119,7 +119,7 @@ test("one recipient failing doesn't stop the others", async () => {
   assert.equal(first.attempts, 1)
   assert.equal(first.next_attempt_at, new Date(START.getTime() + 60_000).toISOString())
   assert.equal(second.status, 'sent')
-  const warnings = logs.lines('warmhole.email')
+  const warnings = logs.lines('stw.email')
   assert.ok(warnings.includes('inner-monologue: email of b to a***@example.com failed (attempt 1): 421 try later'), warnings.join('\n'))
 })
 
@@ -142,7 +142,7 @@ test('retry schedule then gives up', async () => {
   const [row] = rows()
   assert.equal(row.status, 'failed')
   assert.equal(row.attempts, 7)
-  assert.ok(logs.lines('warmhole.email').includes('inner-monologue: gave up emailing b to a***@example.com: 421 busy'))
+  assert.ok(logs.lines('stw.email').includes('inner-monologue: gave up emailing b to a***@example.com: 421 busy'))
   advance(100_000_000)
   assert.equal(await worker.tick(), 0)
   assert.equal(rows()[0].attempts, 7)
@@ -187,7 +187,7 @@ test('gone subscriber or deleted post drops the row silently', async () => {
   assert.equal(mailer.sent[0].subject, 'Post p2')
   assert.equal(rows().length, 1)
   assert.equal(rows()[0].status, 'sent')
-  assert.deepEqual(logs.lines('warmhole.email'), ['inner-monologue: emailed p2 to b***@example.com'])
+  assert.deepEqual(logs.lines('stw.email'), ['inner-monologue: emailed p2 to b***@example.com'])
 })
 
 test('a row whose subscriber vanished without cascade is dropped', async () => {
@@ -199,7 +199,7 @@ test('a row whose subscriber vanished without cascade is dropped', async () => {
   await worker.tick()
   assert.equal(mailer.sent.length, 0)
   assert.equal(rows().length, 0)
-  assert.deepEqual(logs.lines('warmhole.email'), [])
+  assert.deepEqual(logs.lines('stw.email'), [])
 })
 
 test('oldest post first and resume after restart', async () => {
@@ -281,7 +281,7 @@ test('a mail that was sent but not recorded is marked failed and never resent', 
   assert.equal(a.attempts, 1)
   assert.equal(a.last_error, 'sent but not recorded: disk full')
   assert.equal(b.status, 'sent')
-  assert.ok(logs.lines('warmhole.email').some((l) => l.includes('was sent but not recorded: disk full')))
+  assert.ok(logs.lines('stw.email').some((l) => l.includes('was sent but not recorded: disk full')))
 })
 
 test('a mail that was sent but cannot be marked failed either is only logged', async () => {
@@ -298,7 +298,7 @@ test('a mail that was sent but cannot be marked failed either is only logged', a
   const worker = new EmailWorker(deps)
   await worker.tick()
   assert.equal(mailer.sent.length, 1)
-  assert.ok(logs.lines('warmhole.email').some((l) => l.includes('could not mark delivery') && l.includes('still full')))
+  assert.ok(logs.lines('stw.email').some((l) => l.includes('could not mark delivery') && l.includes('still full')))
 })
 
 test('overlapping ticks share one pass', async () => {

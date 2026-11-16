@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -z "${WARMHOLE_SSH:-}" ]]; then
-  echo "Set WARMHOLE_SSH to the server, for example: WARMHOLE_SSH=root@203.0.113.7 scripts/logs -f" >&2
+if [[ -z "${STW_SSH:-}" ]]; then
+  echo "Set STW_SSH to the server, for example: STW_SSH=root@203.0.113.7 scripts/logs -f" >&2
   exit 1
 fi
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ssh_args=()
-if [[ -n "${WARMHOLE_SSH_KEY:-}" ]]; then ssh_args+=(-i "$WARMHOLE_SSH_KEY"); fi
+if [[ -n "${STW_SSH_KEY:-}" ]]; then ssh_args+=(-i "$STW_SSH_KEY"); fi
 if [[ $# -eq 0 ]]; then set -- --tail 200; fi
 
 remote_args="$(printf ' %q' "$@")"
-ssh "${ssh_args[@]}" "$WARMHOLE_SSH" "cd ${WARMHOLE_DIR:-/opt/warmhole} && docker compose logs --no-log-prefix --no-color${remote_args} warmhole" \
+ssh "${ssh_args[@]}" "$STW_SSH" "cd ${STW_DIR:-/opt/stw} && docker compose logs --no-log-prefix --no-color${remote_args} stw" \
   | node "$root/src/logview.ts"

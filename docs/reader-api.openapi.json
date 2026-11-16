@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "warmhole reader API",
+    "title": "spread-the-word reader API",
     "version": "1.0.0",
     "summary": "Read what the accounts a site follows have posted, and manage who the site follows.",
     "description": "A small, private API for one reader (for example Coffee Companion) per site. Every request is scoped to one site and authenticated with that site's reader token. Responses are JSON. Timestamps are RFC 3339 in UTC with millisecond precision, for example 2026-10-16T06:12:03.000Z. Within /reader/v1, fields and enum values may be added; clients must ignore unknown fields and treat unknown enum values like the closest generic value (an unknown item type like Note, an unknown attachment kind like other). Removing or renaming a field, or changing its meaning, requires /reader/v2. Design: docs/superpowers/specs/2026-10-16-reader-api-design.md.",
@@ -13,7 +13,7 @@
   "servers": [
     {
       "url": "https://ap.nbaglivo.dev/reader/v1",
-      "description": "The Inner Monologue's warmhole instance"
+      "description": "The Inner Monologue's spread-the-word instance"
     },
     {
       "url": "http://localhost:8080/reader/v1",
@@ -41,7 +41,7 @@
         "tags": ["items"],
         "operationId": "listItems",
         "summary": "List received items",
-        "description": "Items are listed in arrival order: the order warmhole stored them in, which is also the order of received_at. Paging is keyset-based on an internal, ever-increasing sequence number, so it is stable under inserts: a page never repeats or skips an item because new items arrived. In desc order new items only ever appear before the first page; in asc order they appear after the last page. Deleted items are never listed. since and until filter on received_at as a half-open window: received_at > since and received_at <= until. Pass next_cursor as cursor to get the next page. A cursor carries order, since and until; repeating them with the same values is allowed, different values are rejected with invalid_cursor. next_cursor is null only when no further item can ever match: in desc order once the oldest match was returned, in asc order once the newest match was returned and until is set. In asc order without until, next_cursor is always present, so a client can keep it and resume from it later to get only what arrived since; an empty items array then means it is caught up.",
+        "description": "Items are listed in arrival order: the order spread-the-word stored them in, which is also the order of received_at. Paging is keyset-based on an internal, ever-increasing sequence number, so it is stable under inserts: a page never repeats or skips an item because new items arrived. In desc order new items only ever appear before the first page; in asc order they appear after the last page. Deleted items are never listed. since and until filter on received_at as a half-open window: received_at > since and received_at <= until. Pass next_cursor as cursor to get the next page. A cursor carries order, since and until; repeating them with the same values is allowed, different values are rejected with invalid_cursor. next_cursor is null only when no further item can ever match: in desc order once the oldest match was returned, in asc order once the newest match was returned and until is set. In asc order without until, next_cursor is always present, so a client can keep it and resume from it later to get only what arrived since; an empty items array then means it is caught up.",
         "parameters": [
           { "$ref": "#/components/parameters/SiteId" },
           { "$ref": "#/components/parameters/Since" },
@@ -403,7 +403,7 @@
         "name": "siteId",
         "in": "path",
         "required": true,
-        "description": "The site's id from the warmhole config.",
+        "description": "The site's id from the spread-the-word config.",
         "schema": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
         "example": "inner-monologue"
       },
@@ -455,7 +455,7 @@
         "schema": { "type": "integer", "minimum": 1 }
       },
       "WwwAuthenticate": {
-        "description": "Always Bearer realm=\"warmhole\".",
+        "description": "Always Bearer realm=\"stw\".",
         "schema": { "type": "string" }
       }
     },
@@ -528,7 +528,7 @@
                 "value": { "error": "https://mastodon.social/@alice/1 is not an account", "code": "not_an_actor" }
               },
               "self": {
-                "value": { "error": "a site can't follow a warmhole account", "code": "cannot_follow_self" }
+                "value": { "error": "a site can't follow a spread-the-word account", "code": "cannot_follow_self" }
               },
               "limit": {
                 "value": { "error": "this site already follows 2000 accounts", "code": "following_limit" }
@@ -592,7 +592,7 @@
       },
       "Account": {
         "type": "object",
-        "description": "A fediverse account, from warmhole's actor cache. Refreshed at most once a day, and whenever the account sends Update for itself.",
+        "description": "A fediverse account, from spread-the-word's actor cache. Refreshed at most once a day, and whenever the account sends Update for itself.",
         "required": ["id", "handle", "name", "avatar_url", "profile_url"],
         "additionalProperties": false,
         "properties": {
@@ -613,7 +613,7 @@
           "avatar_url": {
             "type": ["string", "null"],
             "format": "uri",
-            "description": "The actor's icon. Remote; warmhole doesn't proxy media."
+            "description": "The actor's icon. Remote; spread-the-word doesn't proxy media."
           },
           "profile_url": {
             "type": ["string", "null"],
@@ -630,7 +630,7 @@
           "url": {
             "type": "string",
             "format": "uri",
-            "description": "The media file on the author's server. Remote; warmhole doesn't proxy media."
+            "description": "The media file on the author's server. Remote; spread-the-word doesn't proxy media."
           },
           "media_type": {
             "type": ["string", "null"],
@@ -699,7 +699,7 @@
           "boosted_at": {
             "type": "string",
             "format": "date-time",
-            "description": "The Announce's published time, or when warmhole received it if it had none."
+            "description": "The Announce's published time, or when spread-the-word received it if it had none."
           },
           "activity_id": {
             "type": "string",
@@ -710,7 +710,7 @@
       },
       "Item": {
         "type": "object",
-        "description": "One post, ready to render without further fetches. All HTML is sanitized by warmhole with a fixed allowlist (see the design addendum): only p, br, a, span, strong, b, em, i, u, s, del, ins, code, pre, blockquote, ul, ol, li, h1 to h6, hr, sup, sub, img, figure, figcaption, table, thead, tbody, tr, th, td; links only http, https and mailto, always rel=\"nofollow noopener noreferrer\"; images only https; no style, script, event handler or iframe.",
+        "description": "One post, ready to render without further fetches. All HTML is sanitized by spread-the-word with a fixed allowlist (see the design addendum): only p, br, a, span, strong, b, em, i, u, s, del, ins, code, pre, blockquote, ul, ol, li, h1 to h6, hr, sup, sub, img, figure, figcaption, table, thead, tbody, tr, th, td; links only http, https and mailto, always rel=\"nofollow noopener noreferrer\"; images only https; no style, script, event handler or iframe.",
         "required": [
           "id",
           "url",
@@ -819,7 +819,7 @@
           "received_at": {
             "type": "string",
             "format": "date-time",
-            "description": "When warmhole stored the item (for a boost, when the boost arrived). since and until filter on this."
+            "description": "When spread-the-word stored the item (for a boost, when the boost arrived). since and until filter on this."
           }
         }
       },

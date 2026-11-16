@@ -10,7 +10,7 @@ import { GuardError } from './diff.ts'
 import type { Subscriptions } from './subscriptions.ts'
 import { expiredLinkPage, unsubscribePage, unsubscribeUrl } from './emails.ts'
 
-const logger = getLogger(['warmhole', 'sync'])
+const logger = getLogger(['stw', 'sync'])
 
 export type AppDeps = {
   config: Config

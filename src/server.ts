@@ -15,10 +15,10 @@ import { Subscriptions } from './subscriptions.ts'
 import { EmailWorker } from './email-worker.ts'
 
 await setupLogging()
-const logger = getLogger(['warmhole'])
+const logger = getLogger(['stw'])
 
 const config = loadConfig(process.env.STW_CONFIG ?? './stw.json')
-const dbPath = process.env.WARMHOLE_DB ?? './data/warmhole.db'
+const dbPath = process.env.STW_DB ?? './data/stw.db'
 mkdirSync(dirname(dbPath), { recursive: true })
 
 const db = new DatabaseSync(dbPath)
@@ -35,7 +35,7 @@ if (config.smtp) {
   subscriptions = new Subscriptions({ config, store, mailer })
   worker = new EmailWorker({ config, store, mailer })
   worker.start()
-  const emailLogger = getLogger(['warmhole', 'email'])
+  const emailLogger = getLogger(['stw', 'email'])
   for (const site of config.sites.filter((s) => s.email)) {
     emailLogger.info('{site}: {count} subscribers', { site: site.id, count: store.countConfirmedSubscribers(site.id) })
   }
@@ -44,7 +44,7 @@ if (config.smtp) {
 const app = buildApp({ config, federation, syncer: new Syncer({ config, store, federation }), subscriptions })
 
 serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 8080) }, (info) => {
-  logger.info('warmhole listening on port {port} for {sites}', { port: info.port, sites: config.sites.map((s) => s.id) })
+  logger.info('stw listening on port {port} for {sites}', { port: info.port, sites: config.sites.map((s) => s.id) })
 })
 
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
