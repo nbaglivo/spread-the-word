@@ -147,7 +147,7 @@ test('never touches caddy or the config files', () => {
   ]
   for (const run of runs) {
     for (const call of run.calls) {
-      assert.ok(!/caddy|\.env|warmhole\.json/.test(call), call)
+      assert.ok(!/caddy|\.env|stw\.json/.test(call), call)
     }
   }
 })

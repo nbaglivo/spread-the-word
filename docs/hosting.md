@@ -64,7 +64,7 @@ Use grey for anything Caddy serves. The blogs on Cloudflare Pages stay as they a
 
 ## Adding more
 
-More blogs on the fediverse: one warmhole, more `sites` in `warmhole.json`.
+More blogs on the fediverse: one warmhole, more `sites` in `stw.json`.
 
 ```
  @nico@innermonologue.nbaglivo.dev ─┐
@@ -128,7 +128,7 @@ Every push to `main` deploys itself. Only the warmhole container changes.
 ```
 
 A deploy never touches Caddy, the `Caddyfile`, Ghost, `.env` or
-`warmhole.json`. Those stay hand-managed on the box.
+`stw.json`. Those stay hand-managed on the box.
 
 The deploy key in GitHub can only run `deploy.sh` with a commit sha. It
 can't open a shell or run anything else.
@@ -192,5 +192,5 @@ Do steps 1, 2, 4 and 5 before the workflow first reaches `main`.
 
    Keep everything else, including Caddy's `edge` network.
 6. After the first successful deploy, remove the old source files from
-   `/opt/warmhole`. Keep `compose.yml`, `Caddyfile`, `.env`, `warmhole.json`
+   `/opt/warmhole`. Keep `compose.yml`, `Caddyfile`, `.env`, `stw.json`
    and `deploy.sh`.

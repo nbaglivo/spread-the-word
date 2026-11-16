@@ -3,6 +3,6 @@ data
 test
 docs
 *.test.ts
-warmhole.json
+stw.json
 .git
 .env

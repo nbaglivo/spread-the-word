@@ -5,7 +5,7 @@ services:
     init: true
     env_file: .env
     volumes:
-      - ./warmhole.json:/config/warmhole.json:ro
+      - ./stw.json:/config/stw.json:ro
       - warmhole-data:/data
 
   caddy:

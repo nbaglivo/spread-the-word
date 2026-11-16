@@ -8,7 +8,7 @@ COPY src ./src
 RUN mkdir -p /data /config && chown node:node /data
 ENV NODE_ENV=production \
     WARMHOLE_DB=/data/warmhole.db \
-    WARMHOLE_CONFIG=/config/warmhole.json \
+    WARMHOLE_CONFIG=/config/stw.json \
     PORT=8080
 USER node
 VOLUME /data

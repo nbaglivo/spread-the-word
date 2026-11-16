@@ -47,7 +47,7 @@ Plan: [`docs/superpowers/plans/2026-10-16-reader-api.md`](docs/superpowers/plans
 
 ## Run it
 
-1. Copy `warmhole.example.json` to `warmhole.json` and fill in one entry per
+1. Copy `stw.example.json` to `stw.json` and fill in one entry per
    site. `syncTokenEnv` names an environment variable holding a long random
    token for that site.
 2. Run the container, with the database on a volume you back up (it holds
@@ -57,7 +57,7 @@ Plan: [`docs/superpowers/plans/2026-10-16-reader-api.md`](docs/superpowers/plans
    docker build -t spread-the-word .
    docker run -d -p 8080:8080 \
      -e MY_BLOG_SYNC_TOKEN="$(openssl rand -hex 32)" \
-     -v "$PWD/warmhole.json:/config/warmhole.json:ro" \
+     -v "$PWD/stw.json:/config/stw.json:ro" \
      -v warmhole-data:/data \
      spread-the-word
    ```
@@ -68,7 +68,7 @@ On a server of your own, `compose.yml` runs spread-the-word behind Caddy, which
 gets the HTTPS certificate for you. Point your domain's DNS at the server, then:
 
 ```bash
-cp warmhole.example.json warmhole.json
+cp stw.example.json stw.json
 cp .env.example .env
 docker compose up -d
 ```
@@ -79,12 +79,12 @@ follows every push. Every push to `main` that passes the tests deploys itself
 to the author's server; see [docs/hosting.md](docs/hosting.md#deploys).
 
 `.env` sets `WARMHOLE_DOMAIN` (the host of `publicUrl`) and each site's sync
-token. To move to another server, copy `warmhole.json`, `.env` and the
+token. To move to another server, copy `stw.json`, `.env` and the
 `warmhole-data` volume, then point the DNS at the new machine. Keep
 `publicUrl` the same: it is your account's identity in the fediverse.
 
 Without Docker: `mise install && npm ci && npm start`. Settings come from
-`WARMHOLE_CONFIG` (default `./warmhole.json`), `WARMHOLE_DB` (default
+`WARMHOLE_CONFIG` (default `./stw.json`), `WARMHOLE_DB` (default
 `./data/warmhole.db`) and `PORT` (default `8080`).
 
 ## Connect a site
@@ -124,8 +124,8 @@ alone, so feeds that list only the latest posts are safe.
 Optional. Readers can also subscribe by email and get each new post in their
 inbox. It works on its own, with or without any fediverse followers.
 
-1. **SMTP.** Add an `smtp` block to `warmhole.json` and, for each site that
-   should send email, an `email` block (see `warmhole.example.json`):
+1. **SMTP.** Add an `smtp` block to `stw.json` and, for each site that
+   should send email, an `email` block (see `stw.example.json`):
 
    ```json
    {
