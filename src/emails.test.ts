@@ -140,3 +140,19 @@ describe('inline styles', () => {
     }
   })
 })
+
+describe('fonts', () => {
+  it('loads no remote fonts in emails or pages', () => {
+    const pages = [
+      newPostEmail(site, post(), 'https://ap.example.dev/u').html,
+      confirmationEmail(site, 'https://ap.example.dev/c').html,
+      expiredLinkPage(site),
+      unsubscribePage(site, 'https://ap.example.dev/u'),
+    ]
+    for (const html of pages) {
+      assert.doesNotMatch(html, /@font-face/)
+      assert.doesNotMatch(html, /nbaglivo/)
+      assert.match(html, /-apple-system/)
+    }
+  })
+})

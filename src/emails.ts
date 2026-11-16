@@ -7,15 +7,6 @@ const BG = '#faf8f4'
 const INK = '#38352f'
 const SANS = "'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif"
 const MONO = "'IBM Plex Mono', ui-monospace, Menlo, monospace"
-const FONT_BASE = 'https://nbaglivo.dev/public/fonts'
-
-const FONT_FACES = [
-  ...[300, 400, 500].map(
-    (w) =>
-      `@font-face{font-family:"IBM Plex Sans";font-weight:${w};font-style:normal;src:url(${FONT_BASE}/ibm-plex-sans/ibm-plex-sans-latin-${w}-normal.woff2) format("woff2")}`,
-  ),
-  `@font-face{font-family:"IBM Plex Mono";font-weight:400;font-style:normal;src:url(${FONT_BASE}/ibm-plex-mono/ibm-plex-mono-latin-400-normal.woff2) format("woff2")}`,
-].join('')
 
 const LINK = `color:${INK};text-decoration:none;border-bottom:2px dotted #cfc7b8;font-weight:500`
 const SITE_NAME = `font-family:${MONO};font-size:12.5px;color:#726d62;margin:0 0 28px`
@@ -86,7 +77,6 @@ function layout(title: string, inner: string): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
-<style>${FONT_FACES}</style>
 </head>
 <body style="margin:0;padding:0;background:${BG};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${BG};">
