@@ -154,7 +154,7 @@ test('follows and unfollows are logged', async () => {
   }
   await post('/users/inner-monologue/inbox', follow)
   await post('/inbox', { '@context': 'https://www.w3.org/ns/activitystreams', id: `${remote.origin}/undos/2`, type: 'Undo', actor: remote.actorId, object: follow })
-  assert.deepEqual(logs.lines('warmhole.followers'), [`${remote.actorId} followed inner-monologue`, `${remote.actorId} unfollowed inner-monologue`])
+  assert.deepEqual(logs.lines('stw.followers'), [`${remote.actorId} followed inner-monologue`, `${remote.actorId} unfollowed inner-monologue`])
 })
 
 test('followers on an inbox that is gone are removed and logged', async () => {
@@ -175,7 +175,7 @@ test('followers on an inbox that is gone are removed and logged', async () => {
   stop.abort()
   await queue
   assert.deepEqual(store.listFollowers('inner-monologue', { offset: 0, limit: 10 }).map((f) => f.actorId), [remote.actorId])
-  assert.deepEqual(logs.lines('warmhole.followers'), [`removed 1 followers at ${gone} after delivery failed for good (http)`])
+  assert.deepEqual(logs.lines('stw.followers'), [`removed 1 followers at ${gone} after delivery failed for good (http)`])
 })
 
 test('sending to followers reads them in one go', async () => {

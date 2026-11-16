@@ -113,7 +113,7 @@ test('site throttle caps confirmations at 30 per hour', async () => {
   assert.equal(await subs.subscribe(SITE, { email: 'nico@example.com', website: '' }), 'throttled')
   await subs.settled()
   assert.equal(mailer.sent.length, 30)
-  assert.ok(logs.lines('warmhole.email').includes(`${SITE}: subscribe throttled for n***@example.com`))
+  assert.ok(logs.lines('stw.email').includes(`${SITE}: subscribe throttled for n***@example.com`))
 })
 
 test('mailer failure still returns sent, logs, and keeps the row pending', async () => {
@@ -123,7 +123,7 @@ test('mailer failure still returns sent, logs, and keeps the row pending', async
   assert.equal(await subs.subscribe(SITE, { email: 'nico@example.com', website: '' }), 'sent')
   await subs.settled()
   assert.equal(store.getSubscriber(SITE, 'nico@example.com')?.status, 'pending')
-  const line = logs.lines('warmhole.email').find((l) => l.includes('confirmation to'))
+  const line = logs.lines('stw.email').find((l) => l.includes('confirmation to'))
   assert.ok(line?.includes('n***@example.com'))
   assert.ok(line?.includes('boom'))
 })
@@ -153,7 +153,7 @@ test('confirm confirms once, logs, and rejects reuse, expiry and garbage', async
   await subs.settled()
   const token = tokenFrom(mailer.sent[0].text)
   assert.equal(subs.confirm(SITE, token), 'confirmed')
-  assert.ok(logs.lines('warmhole.email').includes(`${SITE}: new subscriber, 1 subscribers`))
+  assert.ok(logs.lines('stw.email').includes(`${SITE}: new subscriber, 1 subscribers`))
   assert.equal(subs.confirm(SITE, token), 'invalid')
   assert.equal(subs.confirm(SITE, 'garbage'), 'invalid')
 
@@ -171,11 +171,11 @@ test('unsubscribe removes a known token and logs', async () => {
   await subs.settled()
   subs.confirm(SITE, tokenFrom(mailer.sent[0].text))
   const unsub = store.getSubscriber(SITE, 'a@example.com')!.unsubscribeToken
-  const before = logs.lines('warmhole.email').length
+  const before = logs.lines('stw.email').length
   assert.equal(subs.unsubscribe(SITE, 'unknown'), false)
-  assert.equal(logs.lines('warmhole.email').length, before)
+  assert.equal(logs.lines('stw.email').length, before)
   assert.equal(subs.unsubscribe(SITE, unsub), true)
-  assert.ok(logs.lines('warmhole.email').includes(`${SITE}: subscriber left, 0 subscribers`))
+  assert.ok(logs.lines('stw.email').includes(`${SITE}: subscriber left, 0 subscribers`))
 })
 
 test('site without email ignores everything', async () => {

@@ -116,11 +116,11 @@ test('failed syncs are logged', async () => {
     throw new Error('disk full')
   }).request('/sites/inner-monologue/sync', { method: 'POST', headers })
   assert.equal(crashed.status, 500)
-  assert.deepEqual(logs.lines('warmhole.sync'), [
+  assert.deepEqual(logs.lines('stw.sync'), [
     'sync of inner-monologue failed: fetching https://innermonologue.test/feed.xml returned 500',
     'sync of inner-monologue crashed: Error: disk full',
   ])
-  assert.deepEqual(logs.records.filter((r) => r.category.join('.') === 'warmhole.sync').map((r) => r.level), ['warning', 'error'])
+  assert.deepEqual(logs.records.filter((r) => r.category.join('.') === 'stw.sync').map((r) => r.level), ['warning', 'error'])
 })
 
 test('healthz and Fedify routes are reachable', async () => {

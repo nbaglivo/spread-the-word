@@ -37,17 +37,17 @@ test('requests are one short line and health checks are hidden', () => {
 })
 
 test('other lines keep their message, without quotes, and flag warnings and errors', () => {
-  const synced = line({ logger: 'warmhole.sync', message: 'synced "inner-monologue": 1 new, 0 updated, 0 deleted' })
+  const synced = line({ logger: 'stw.sync', message: 'synced "inner-monologue": 1 new, 0 updated, 0 deleted' })
   assert.equal(describeLine(synced, 'UTC'), '12:43:49 synced inner-monologue: 1 new, 0 updated, 0 deleted')
-  const failed = line({ logger: 'warmhole.sync', level: 'ERROR', message: 'sync of "inner-monologue" crashed: Error: disk full' })
+  const failed = line({ logger: 'stw.sync', level: 'ERROR', message: 'sync of "inner-monologue" crashed: Error: disk full' })
   assert.equal(describeLine(failed, 'UTC'), '12:43:49 ERROR sync of inner-monologue crashed: Error: disk full')
 })
 
 test('email lines stay short, with quoted values unquoted', () => {
-  const joined = line({ logger: 'warmhole.email', message: '"inner-monologue": new subscriber, 3 subscribers' })
+  const joined = line({ logger: 'stw.email', message: '"inner-monologue": new subscriber, 3 subscribers' })
   assert.equal(describeLine(joined, 'UTC'), '12:43:49 inner-monologue: new subscriber, 3 subscribers')
   const retry = line({
-    logger: 'warmhole.email',
+    logger: 'stw.email',
     level: 'WARN',
     message: '"inner-monologue": email of "Title b" to "n***@gmail.com" failed (attempt 2): "421 try later"',
   })

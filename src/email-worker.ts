@@ -5,7 +5,7 @@ import { newPostEmail, unsubscribeUrl } from './emails.ts'
 import { classifyMailError, type Mailer } from './mail.ts'
 import type { EmailDelivery, Store } from './store.ts'
 
-const logger = getLogger(['warmhole', 'email'])
+const logger = getLogger(['stw', 'email'])
 
 export const RETRY_DELAYS_MS: readonly number[] = [60_000, 300_000, 1_800_000, 7_200_000, 21_600_000, 43_200_000]
 

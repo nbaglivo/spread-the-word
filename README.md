@@ -58,7 +58,7 @@ Plan: [`docs/superpowers/plans/2026-10-16-reader-api.md`](docs/superpowers/plans
    docker run -d -p 8080:8080 \
      -e MY_BLOG_SYNC_TOKEN="$(openssl rand -hex 32)" \
      -v "$PWD/stw.json:/config/stw.json:ro" \
-     -v warmhole-data:/data \
+     -v stw-data:/data \
      spread-the-word
    ```
 
@@ -78,14 +78,14 @@ release is also tagged with its version (`:v0.1.1`) to pin one, and `:main`
 follows every push. Every push to `main` that passes the tests deploys itself
 to the author's server; see [docs/hosting.md](docs/hosting.md#deploys).
 
-`.env` sets `WARMHOLE_DOMAIN` (the host of `publicUrl`) and each site's sync
+`.env` sets `STW_DOMAIN` (the host of `publicUrl`) and each site's sync
 token. To move to another server, copy `stw.json`, `.env` and the
-`warmhole-data` volume, then point the DNS at the new machine. Keep
+`stw-data` volume, then point the DNS at the new machine. Keep
 `publicUrl` the same: it is your account's identity in the fediverse.
 
 Without Docker: `mise install && npm ci && npm start`. Settings come from
-`STW_CONFIG` (default `./stw.json`), `WARMHOLE_DB` (default
-`./data/warmhole.db`) and `PORT` (default `8080`).
+`STW_CONFIG` (default `./stw.json`), `STW_DB` (default
+`./data/stw.db`) and `PORT` (default `8080`).
 
 ## Connect a site
 
@@ -105,7 +105,7 @@ Without Docker: `mise install && npm ci && npm start`. Settings come from
    - name: Notify spread-the-word
      run: >
        curl --fail --retry 3 -X POST
-       -H "Authorization: Bearer ${{ secrets.WARMHOLE_SYNC_TOKEN }}"
+       -H "Authorization: Bearer ${{ secrets.STW_SYNC_TOKEN }}"
        https://ap.example.dev/sites/my-blog/sync
    ```
 
@@ -199,7 +199,7 @@ on, it also logs subscribers joining and leaving and each email sent or failed
 `scripts/logs` reads them over SSH and prints them one short line each:
 
 ```bash
-export WARMHOLE_SSH=root@203.0.113.7
+export STW_SSH=root@203.0.113.7
 scripts/logs              # last 200 lines
 scripts/logs -f           # follow live
 scripts/logs --since 1h
@@ -210,8 +210,20 @@ scripts/logs --since 1h
 12:43:49 sent Create creating-a-life → mastodon.social
 ```
 
-`WARMHOLE_SSH_KEY` picks an SSH key and `WARMHOLE_DIR` the folder on the server
-(default `/opt/warmhole`).
+`STW_SSH_KEY` picks an SSH key and `STW_DIR` the folder on the server
+(default `/opt/stw`).
+
+## List subscribers and followers
+
+`scripts/subscribers` prints each site's email subscribers (with their status
+and when they confirmed) and fediverse followers, read-only, over the same SSH
+settings:
+
+```bash
+scripts/subscribers
+```
+
+Its output contains subscribers' email addresses; keep it to yourself.
 
 ## Development
 

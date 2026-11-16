@@ -6,7 +6,7 @@ import { confirmUrl, confirmationEmail } from './emails.ts'
 import type { Mailer } from './mail.ts'
 import type { Store } from './store.ts'
 
-const logger = getLogger(['warmhole', 'email'])
+const logger = getLogger(['stw', 'email'])
 
 const CONFIRM_TTL_MS = 48 * 60 * 60 * 1000
 const ADDRESS_THROTTLE_MS = 10 * 60 * 1000

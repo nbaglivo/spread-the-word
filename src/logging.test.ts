@@ -24,7 +24,7 @@ test('log lines leave out the full activity body', () => {
 
 test('logging inside a context does not warn about context-local storage', async () => {
   const logs = await captureLogs()
-  withContext({ requestId: '1' }, () => getLogger(['warmhole']).info('hello'))
+  withContext({ requestId: '1' }, () => getLogger(['stw']).info('hello'))
   assert.deepEqual(logs.lines('logtape.meta'), [])
-  assert.deepEqual(logs.lines('warmhole'), ['hello'])
+  assert.deepEqual(logs.lines('stw'), ['hello'])
 })

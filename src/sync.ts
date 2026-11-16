@@ -6,8 +6,8 @@ import { diff } from './diff.ts'
 import type { Store } from './store.ts'
 import { activityFor } from './federation.ts'
 
-const logger = getLogger(['warmhole', 'sync'])
-const emailLogger = getLogger(['warmhole', 'email'])
+const logger = getLogger(['stw', 'sync'])
+const emailLogger = getLogger(['stw', 'email'])
 
 export type SyncResult = { new: number; updated: number; deleted: number; emails: number }
 

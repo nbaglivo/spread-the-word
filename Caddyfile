@@ -1,4 +1,4 @@
-{$WARMHOLE_DOMAIN} {
+{$STW_DOMAIN} {
 	encode zstd gzip
-	reverse_proxy warmhole:8080
+	reverse_proxy stw:8080
 }
