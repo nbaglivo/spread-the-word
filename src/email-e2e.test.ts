@@ -14,7 +14,7 @@ import { TEST_CONFIG } from '../test/fake-remote.ts'
 import { fakeMailer } from '../test/fake-mailer.ts'
 import { entry, rss } from '../test/feeds.ts'
 
-const SITE = 'inner-monologue'
+const SITE = 'example-blog'
 const CONFIG: Config = {
   ...TEST_CONFIG,
   smtp: { host: 'smtp.test', port: 587, user: 'u', password: 'p', pauseMs: 0 },
@@ -22,10 +22,10 @@ const CONFIG: Config = {
     {
       ...TEST_CONFIG.sites[0],
       email: {
-        from: 'Nico <nico@innermonologue.test>',
-        checkInboxUrl: new URL('https://innermonologue.test/check-inbox'),
-        confirmedUrl: new URL('https://innermonologue.test/confirmed'),
-        unsubscribedUrl: new URL('https://innermonologue.test/unsubscribed'),
+        from: 'You <you@blog.test>',
+        checkInboxUrl: new URL('https://blog.test/check-inbox'),
+        confirmedUrl: new URL('https://blog.test/confirmed'),
+        unsubscribedUrl: new URL('https://blog.test/unsubscribed'),
       },
     },
   ],
@@ -56,7 +56,7 @@ test('subscribe, confirm, receive a new post and unsubscribe through the real ap
 
   const confirmed = await request(new URL(confirmLink).pathname + new URL(confirmLink).search)
   assert.equal(confirmed.status, 303)
-  assert.equal(confirmed.headers.get('location'), 'https://innermonologue.test/confirmed')
+  assert.equal(confirmed.headers.get('location'), 'https://blog.test/confirmed')
   assert.equal(store.countConfirmedSubscribers(SITE), 1)
 
   feed = [entry('a')]

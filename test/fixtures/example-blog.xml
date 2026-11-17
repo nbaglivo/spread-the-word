@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Example Blog</title>
+    <link>https://blog.example.dev/</link>
+    <description>A made-up blog for spread-the-word's tests.</description>
+    <language>en</language>
+    <lastBuildDate>Sun, 11 Oct 2026 00:00:00 GMT</lastBuildDate>
+    <atom:link href="https://blog.example.dev/feed.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>First Light</title>
+      <link>https://blog.example.dev/posts/first-light.html</link>
+      <guid isPermaLink="true">https://blog.example.dev/posts/first-light.html</guid>
+      <pubDate>Sun, 11 Oct 2026 00:00:00 GMT</pubDate>
+      <content:encoded><![CDATA[<p>The garden gets its first light at seven, and the tomatoes lean toward it like they've been waiting all night.</p>
+<p>I moved the chair to follow them.</p>
+]]></content:encoded>
+    </item>
+    <item>
+      <title>A list of small things</title>
+      <link>https://blog.example.dev/posts/small-things.html</link>
+      <guid isPermaLink="true">https://blog.example.dev/posts/small-things.html</guid>
+      <pubDate>Fri, 09 Oct 2026 00:00:00 GMT</pubDate>
+      <content:encoded><![CDATA[<p>Things worth keeping track of:</p>
+<ul>
+<li>Bread rises faster near the window.</li>
+<li>The neighbour's cat has <em>two</em> names.</li>
+<li>Most bugs are typos with good PR.</li>
+</ul>
+<p>More soon.</p>
+]]></content:encoded>
+    </item>
+    <item>
+      <title>Same day, second post</title>
+      <link>https://blog.example.dev/posts/second-post.html</link>
+      <guid isPermaLink="true">https://blog.example.dev/posts/second-post.html</guid>
+      <pubDate>Fri, 09 Oct 2026 00:00:00 GMT</pubDate>
+      <content:encoded><![CDATA[<p>Two posts on one day, to check that ordering by date alone isn't enough.</p>
+]]></content:encoded>
+    </item>
+    <item>
+      <title>Fixing the gate</title>
+      <link>https://blog.example.dev/posts/fixing-the-gate.html</link>
+      <guid isPermaLink="true">https://blog.example.dev/posts/fixing-the-gate.html</guid>
+      <pubDate>Sun, 13 Sep 2026 00:00:00 GMT</pubDate>
+      <content:encoded><![CDATA[<p>The gate had a loose hinge for a year. It took ten minutes and one screw &amp; a little patience.</p>
+]]></content:encoded>
+    </item>
+    <item>
+      <title>Notes from last autumn</title>
+      <link>https://blog.example.dev/posts/last-autumn.html</link>
+      <guid isPermaLink="true">https://blog.example.dev/posts/last-autumn.html</guid>
+      <pubDate>Sat, 01 Nov 2025 00:00:00 GMT</pubDate>
+      <content:encoded><![CDATA[<p>Leaves, &quot;quotes&quot;, accents like café and naïve, and a <a href="https://example.com/">link</a>.</p>
+<p>That's all.</p>
+]]></content:encoded>
+    </item>
+  </channel>
+</rss>

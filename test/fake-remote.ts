@@ -16,11 +16,11 @@ export const TEST_CONFIG: Config = {
   publicUrl: new URL('https://ap.test'),
   sites: [
     {
-      id: 'inner-monologue',
-      handle: 'nico',
-      domain: 'innermonologue.test',
-      feedUrl: new URL('https://innermonologue.test/feed.xml'),
-      name: 'The Open Inner Monologue',
+      id: 'example-blog',
+      handle: 'you',
+      domain: 'blog.test',
+      feedUrl: new URL('https://blog.test/feed.xml'),
+      name: 'Example Blog',
       summary: 'Test summary',
       icon: undefined,
       syncToken: 'secret',

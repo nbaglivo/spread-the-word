@@ -9,7 +9,7 @@ import { TEST_CONFIG } from '../test/fake-remote.ts'
 import { fakeMailer } from '../test/fake-mailer.ts'
 import { captureLogs } from '../test/logs.ts'
 
-const SITE = 'inner-monologue'
+const SITE = 'example-blog'
 const CONFIG: Config = {
   ...TEST_CONFIG,
   smtp: { host: 'smtp.test', port: 587, user: 'u', password: 'p', pauseMs: 0 },
@@ -17,10 +17,10 @@ const CONFIG: Config = {
     {
       ...TEST_CONFIG.sites[0],
       email: {
-        from: 'Nico <nico@innermonologue.test>',
-        checkInboxUrl: new URL('https://innermonologue.test/check-inbox'),
-        confirmedUrl: new URL('https://innermonologue.test/confirmed'),
-        unsubscribedUrl: new URL('https://innermonologue.test/unsubscribed'),
+        from: 'You <you@blog.test>',
+        checkInboxUrl: new URL('https://blog.test/check-inbox'),
+        confirmedUrl: new URL('https://blog.test/confirmed'),
+        unsubscribedUrl: new URL('https://blog.test/unsubscribed'),
       },
     },
   ],
@@ -61,35 +61,35 @@ test('invalid address is rejected', async () => {
 
 test('new address gets a pending row and a confirmation mail', async () => {
   const { subs, store, mailer } = setup()
-  assert.equal(await subs.subscribe(SITE, { email: 'Nico@Example.COM', website: '' }), 'sent')
+  assert.equal(await subs.subscribe(SITE, { email: 'You@Example.COM', website: '' }), 'sent')
   await subs.settled()
-  const row = store.getSubscriber(SITE, 'nico@example.com')
+  const row = store.getSubscriber(SITE, 'you@example.com')
   assert.equal(row?.status, 'pending')
   assert.equal(mailer.sent.length, 1)
   const mail = mailer.sent[0]
-  assert.equal(mail.to, 'nico@example.com')
-  assert.equal(mail.from, 'Nico <nico@innermonologue.test>')
-  assert.equal(mail.subject, 'Confirm your subscription to The Open Inner Monologue')
+  assert.equal(mail.to, 'you@example.com')
+  assert.equal(mail.from, 'You <you@blog.test>')
+  assert.equal(mail.subject, 'Confirm your subscription to Example Blog')
   assert.equal(hashToken(tokenFrom(mail.text)), row?.confirmTokenHash)
 })
 
 test('repeat within 10 minutes is throttled, later resend invalidates the old link', async () => {
   const { subs, store, mailer, advance } = setup()
-  await subs.subscribe(SITE, { email: ' Nico@Example.COM ', website: '' })
+  await subs.subscribe(SITE, { email: ' You@Example.COM ', website: '' })
   await subs.settled()
-  assert.equal(await subs.subscribe(SITE, { email: 'nico@example.com', website: '' }), 'throttled')
+  assert.equal(await subs.subscribe(SITE, { email: 'you@example.com', website: '' }), 'throttled')
   await subs.settled()
   assert.equal(mailer.sent.length, 1)
   const first = tokenFrom(mailer.sent[0].text)
-  const unsub = store.getSubscriber(SITE, 'nico@example.com')?.unsubscribeToken
+  const unsub = store.getSubscriber(SITE, 'you@example.com')?.unsubscribeToken
 
   advance(10 * 60 * 1000)
-  assert.equal(await subs.subscribe(SITE, { email: 'nico@example.com', website: '' }), 'sent')
+  assert.equal(await subs.subscribe(SITE, { email: 'you@example.com', website: '' }), 'sent')
   await subs.settled()
   assert.equal(mailer.sent.length, 2)
   const second = tokenFrom(mailer.sent[1].text)
   assert.notEqual(second, first)
-  assert.equal(store.getSubscriber(SITE, 'nico@example.com')?.unsubscribeToken, unsub)
+  assert.equal(store.getSubscriber(SITE, 'you@example.com')?.unsubscribeToken, unsub)
   assert.equal(subs.confirm(SITE, first), 'invalid')
   assert.equal(subs.confirm(SITE, second), 'confirmed')
 })
@@ -110,21 +110,21 @@ test('site throttle caps confirmations at 30 per hour', async () => {
     assert.equal(await subs.subscribe(SITE, { email: `user${i}@example.com`, website: '' }), 'sent')
     await subs.settled()
   }
-  assert.equal(await subs.subscribe(SITE, { email: 'nico@example.com', website: '' }), 'throttled')
+  assert.equal(await subs.subscribe(SITE, { email: 'you@example.com', website: '' }), 'throttled')
   await subs.settled()
   assert.equal(mailer.sent.length, 30)
-  assert.ok(logs.lines('stw.email').includes(`${SITE}: subscribe throttled for n***@example.com`))
+  assert.ok(logs.lines('stw.email').includes(`${SITE}: subscribe throttled for y***@example.com`))
 })
 
 test('mailer failure still returns sent, logs, and keeps the row pending', async () => {
   const logs = await captureLogs()
   const { subs, store, mailer } = setup()
   mailer.failAll(new MailError('boom', false))
-  assert.equal(await subs.subscribe(SITE, { email: 'nico@example.com', website: '' }), 'sent')
+  assert.equal(await subs.subscribe(SITE, { email: 'you@example.com', website: '' }), 'sent')
   await subs.settled()
-  assert.equal(store.getSubscriber(SITE, 'nico@example.com')?.status, 'pending')
+  assert.equal(store.getSubscriber(SITE, 'you@example.com')?.status, 'pending')
   const line = logs.lines('stw.email').find((l) => l.includes('confirmation to'))
-  assert.ok(line?.includes('n***@example.com'))
+  assert.ok(line?.includes('y***@example.com'))
   assert.ok(line?.includes('boom'))
 })
 

@@ -75,8 +75,7 @@ docker compose up -d
 
 This pulls the latest release, `ghcr.io/nbaglivo/spread-the-word:latest`. Each
 release is also tagged with its version (`:v0.1.1`) to pin one, and `:main`
-follows every push. Every push to `main` that passes the tests deploys itself
-to the author's server; see [docs/hosting.md](docs/hosting.md#deploys).
+follows every push to `main`.
 
 `.env` sets `STW_DOMAIN` (the host of `publicUrl`) and each site's sync
 token. To move to another server, copy `stw.json`, `.env` and the
@@ -206,7 +205,7 @@ scripts/logs --since 1h
 ```
 
 ```
-12:43:48 synced inner-monologue: 1 new, 0 updated, 0 deleted
+12:43:48 synced example-blog: 1 new, 0 updated, 0 deleted
 12:43:49 sent Create creating-a-life → mastodon.social
 ```
 

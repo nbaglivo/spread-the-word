@@ -11,15 +11,15 @@ function line(fields: Record<string, unknown>): string {
 test('deliveries show the activity, the post and the receiving host', () => {
   const sent = line({
     logger: 'fedify.federation.outbox',
-    message: 'Successfully sent activity "https://ap.test/users/inner-monologue/posts/creating-a-life#create" to "https://mastodon.social/inbox".',
-    properties: { activityId: 'https://ap.test/users/inner-monologue/posts/creating-a-life#create', inbox: 'https://mastodon.social/inbox' },
+    message: 'Successfully sent activity "https://ap.test/users/example-blog/posts/creating-a-life#create" to "https://mastodon.social/inbox".',
+    properties: { activityId: 'https://ap.test/users/example-blog/posts/creating-a-life#create', inbox: 'https://mastodon.social/inbox' },
   })
   assert.equal(describeLine(sent, 'UTC'), '12:43:49 sent Create creating-a-life → mastodon.social')
 
   const accept = line({
     logger: 'fedify.federation.outbox',
     message: 'Successfully sent activity ...',
-    properties: { activityId: 'https://ap.test/users/inner-monologue#accepts/1b2c', inbox: 'https://mastodon.social/users/bob/inbox' },
+    properties: { activityId: 'https://ap.test/users/example-blog#accepts/1b2c', inbox: 'https://mastodon.social/users/bob/inbox' },
   })
   assert.equal(describeLine(accept, 'UTC'), '12:43:49 sent Accept → mastodon.social')
 })
@@ -37,21 +37,21 @@ test('requests are one short line and health checks are hidden', () => {
 })
 
 test('other lines keep their message, without quotes, and flag warnings and errors', () => {
-  const synced = line({ logger: 'stw.sync', message: 'synced "inner-monologue": 1 new, 0 updated, 0 deleted' })
-  assert.equal(describeLine(synced, 'UTC'), '12:43:49 synced inner-monologue: 1 new, 0 updated, 0 deleted')
-  const failed = line({ logger: 'stw.sync', level: 'ERROR', message: 'sync of "inner-monologue" crashed: Error: disk full' })
-  assert.equal(describeLine(failed, 'UTC'), '12:43:49 ERROR sync of inner-monologue crashed: Error: disk full')
+  const synced = line({ logger: 'stw.sync', message: 'synced "example-blog": 1 new, 0 updated, 0 deleted' })
+  assert.equal(describeLine(synced, 'UTC'), '12:43:49 synced example-blog: 1 new, 0 updated, 0 deleted')
+  const failed = line({ logger: 'stw.sync', level: 'ERROR', message: 'sync of "example-blog" crashed: Error: disk full' })
+  assert.equal(describeLine(failed, 'UTC'), '12:43:49 ERROR sync of example-blog crashed: Error: disk full')
 })
 
 test('email lines stay short, with quoted values unquoted', () => {
-  const joined = line({ logger: 'stw.email', message: '"inner-monologue": new subscriber, 3 subscribers' })
-  assert.equal(describeLine(joined, 'UTC'), '12:43:49 inner-monologue: new subscriber, 3 subscribers')
+  const joined = line({ logger: 'stw.email', message: '"example-blog": new subscriber, 3 subscribers' })
+  assert.equal(describeLine(joined, 'UTC'), '12:43:49 example-blog: new subscriber, 3 subscribers')
   const retry = line({
     logger: 'stw.email',
     level: 'WARN',
-    message: '"inner-monologue": email of "Title b" to "n***@gmail.com" failed (attempt 2): "421 try later"',
+    message: '"example-blog": email of "Title b" to "n***@gmail.com" failed (attempt 2): "421 try later"',
   })
-  assert.equal(describeLine(retry, 'UTC'), '12:43:49 WARN inner-monologue: email of Title b to n***@gmail.com failed (attempt 2): 421 try later')
+  assert.equal(describeLine(retry, 'UTC'), '12:43:49 WARN example-blog: email of Title b to n***@gmail.com failed (attempt 2): 421 try later')
 })
 
 test('lines that are not json pass through unchanged', () => {
