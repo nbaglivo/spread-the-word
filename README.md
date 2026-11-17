@@ -41,9 +41,7 @@ following is done by your blog's own account, so the accounts you follow see
 a follow from it.
 
 It's our own small API, not the Mastodon client API, so Mastodon apps can't
-read it. Why: [spec](docs/superpowers/specs/2026-10-16-reader-api-design.md#why-our-own-api-and-not-the-mastodon-client-api).
-Contract: [`docs/reader-api.openapi.json`](docs/reader-api.openapi.json).
-Plan: [`docs/superpowers/plans/2026-10-16-reader-api.md`](docs/superpowers/plans/2026-10-16-reader-api.md).
+read it. Contract: [`docs/reader-api.openapi.json`](docs/reader-api.openapi.json).
 
 ## Run it
 
