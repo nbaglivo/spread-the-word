@@ -23,7 +23,7 @@ function post(overrides: Partial<PostRow> = {}): PostRow {
     title: 'Tom & Jerry <3',
     summary: 'It&#8217;s here',
     html: '<p>body</p>',
-    url: 'https://innermonologue.test/posts/tom/',
+    url: 'https://blog.test/posts/tom/',
     published: '2026-11-03T23:30:00Z',
     updated: '2026-11-03T23:30:00Z',
     contentHash: 'h',
@@ -63,19 +63,19 @@ describe('formatDate', () => {
 
 describe('urls', () => {
   it('encode the token', () => {
-    assert.equal(confirmUrl(TEST_CONFIG, 'inner-monologue', 'a b&c'), 'https://ap.test/sites/inner-monologue/confirm?token=a%20b%26c')
-    assert.equal(unsubscribeUrl(TEST_CONFIG, 'inner-monologue', 'a/b'), 'https://ap.test/sites/inner-monologue/unsubscribe?token=a%2Fb')
+    assert.equal(confirmUrl(TEST_CONFIG, 'example-blog', 'a b&c'), 'https://ap.test/sites/example-blog/confirm?token=a%20b%26c')
+    assert.equal(unsubscribeUrl(TEST_CONFIG, 'example-blog', 'a/b'), 'https://ap.test/sites/example-blog/unsubscribe?token=a%2Fb')
   })
 })
 
 describe('newPostEmail', () => {
-  const unsub = 'https://ap.test/sites/inner-monologue/unsubscribe?token=t&x=1'
+  const unsub = 'https://ap.test/sites/example-blog/unsubscribe?token=t&x=1'
   const mail = newPostEmail(site, post(), unsub)
 
   it('renders subject and text', () => {
     assert.equal(mail.subject, 'Tom & Jerry <3')
     assert.ok(mail.text.includes('It’s here'))
-    assert.ok(mail.text.includes('https://innermonologue.test/posts/tom/'))
+    assert.ok(mail.text.includes('https://blog.test/posts/tom/'))
     assert.ok(mail.text.includes('Keep reading'))
     assert.ok(mail.text.includes(unsub))
   })
@@ -83,21 +83,21 @@ describe('newPostEmail', () => {
   it('renders escaped html', () => {
     assert.ok(mail.html.includes('Tom &amp; Jerry &lt;3'))
     assert.ok(!mail.html.includes('&amp;amp;'))
-    assert.ok(mail.html.includes('The Open Inner Monologue'))
+    assert.ok(mail.html.includes('Example Blog'))
     assert.ok(mail.html.includes('Keep reading →'))
-    assert.ok(mail.html.includes('https://innermonologue.test/posts/tom/'))
-    assert.ok(mail.html.includes("You're getting this because you subscribed at innermonologue.test"))
+    assert.ok(mail.html.includes('https://blog.test/posts/tom/'))
+    assert.ok(mail.html.includes("You're getting this because you subscribed at blog.test"))
     assert.ok(mail.html.includes('token=t&amp;x=1'))
     assert.ok(mail.html.includes('#faf8f4'))
   })
 })
 
 describe('confirmationEmail', () => {
-  const url = 'https://ap.test/sites/inner-monologue/confirm?token=abc'
+  const url = 'https://ap.test/sites/example-blog/confirm?token=abc'
   const mail = confirmationEmail(site, url)
 
   it('renders copy and link', () => {
-    assert.equal(mail.subject, 'Confirm your subscription to The Open Inner Monologue')
+    assert.equal(mail.subject, 'Confirm your subscription to Example Blog')
     assert.ok(mail.html.includes("One click and you're in"))
     assert.ok(mail.html.includes('Confirm my subscription'))
     assert.ok(mail.html.includes(url))
@@ -108,17 +108,17 @@ describe('confirmationEmail', () => {
 
 describe('pages', () => {
   it('renders the unsubscribe form', () => {
-    const action = 'https://ap.test/sites/inner-monologue/unsubscribe?token=a&b'
+    const action = 'https://ap.test/sites/example-blog/unsubscribe?token=a&b'
     const page = unsubscribePage(site, action)
-    assert.ok(page.includes('<form method="post" action="https://ap.test/sites/inner-monologue/unsubscribe?token=a&amp;b">'))
-    assert.ok(page.includes('Unsubscribe from The Open Inner Monologue?'))
+    assert.ok(page.includes('<form method="post" action="https://ap.test/sites/example-blog/unsubscribe?token=a&amp;b">'))
+    assert.ok(page.includes('Unsubscribe from Example Blog?'))
     assert.match(page, /<button[^>]*>Unsubscribe<\/button>/)
   })
 
   it('renders the expired link page', () => {
     const page = expiredLinkPage(site)
     assert.ok(page.includes('This link has expired or was already used.'))
-    assert.ok(page.includes('href="https://innermonologue.test/"'))
+    assert.ok(page.includes('href="https://blog.test/"'))
   })
 })
 

@@ -11,7 +11,7 @@ import { TEST_CONFIG } from '../test/fake-remote.ts'
 import { fakeMailer } from '../test/fake-mailer.ts'
 import { captureLogs } from '../test/logs.ts'
 
-const SITE = 'inner-monologue'
+const SITE = 'example-blog'
 const CONFIG: Config = {
   ...TEST_CONFIG,
   smtp: { host: 'smtp.test', port: 587, user: 'u', password: 'p', pauseMs: 250 },
@@ -19,10 +19,10 @@ const CONFIG: Config = {
     {
       ...TEST_CONFIG.sites[0],
       email: {
-        from: 'Nico <nico@innermonologue.test>',
-        checkInboxUrl: new URL('https://innermonologue.test/check-inbox'),
-        confirmedUrl: new URL('https://innermonologue.test/confirmed'),
-        unsubscribedUrl: new URL('https://innermonologue.test/unsubscribed'),
+        from: 'You <you@blog.test>',
+        checkInboxUrl: new URL('https://blog.test/check-inbox'),
+        confirmedUrl: new URL('https://blog.test/confirmed'),
+        unsubscribedUrl: new URL('https://blog.test/unsubscribed'),
       },
     },
   ],
@@ -32,7 +32,7 @@ const START = new Date('2026-11-03T10:00:00Z')
 function entry(id: string, published = '2026-11-01T00:00:00Z'): FeedEntry {
   return {
     id,
-    url: `https://innermonologue.test/${id}`,
+    url: `https://blog.test/${id}`,
     title: `Post ${id}`,
     summary: `About ${id}`,
     html: `<p>${id}</p>`,
@@ -97,7 +97,7 @@ test('sends queued deliveries', async () => {
   assert.deepEqual(mailer.sent.map((m) => m.to), ['a@example.com', 'b@example.com'])
   for (const m of mailer.sent) {
     assert.equal(m.subject, 'Post p1')
-    assert.equal(m.from, 'Nico <nico@innermonologue.test>')
+    assert.equal(m.from, 'You <you@blog.test>')
   }
   const url = unsubscribeUrl(CONFIG, SITE, a.unsubscribeToken)
   assert.equal(mailer.sent[0].headers?.['List-Unsubscribe'], `<${url}>`)
@@ -120,7 +120,7 @@ test("one recipient failing doesn't stop the others", async () => {
   assert.equal(first.next_attempt_at, new Date(START.getTime() + 60_000).toISOString())
   assert.equal(second.status, 'sent')
   const warnings = logs.lines('stw.email')
-  assert.ok(warnings.includes('inner-monologue: email of b to a***@example.com failed (attempt 1): 421 try later'), warnings.join('\n'))
+  assert.ok(warnings.includes('example-blog: email of b to a***@example.com failed (attempt 1): 421 try later'), warnings.join('\n'))
 })
 
 test('retry schedule then gives up', async () => {
@@ -142,7 +142,7 @@ test('retry schedule then gives up', async () => {
   const [row] = rows()
   assert.equal(row.status, 'failed')
   assert.equal(row.attempts, 7)
-  assert.ok(logs.lines('stw.email').includes('inner-monologue: gave up emailing b to a***@example.com: 421 busy'))
+  assert.ok(logs.lines('stw.email').includes('example-blog: gave up emailing b to a***@example.com: 421 busy'))
   advance(100_000_000)
   assert.equal(await worker.tick(), 0)
   assert.equal(rows()[0].attempts, 7)
@@ -187,7 +187,7 @@ test('gone subscriber or deleted post drops the row silently', async () => {
   assert.equal(mailer.sent[0].subject, 'Post p2')
   assert.equal(rows().length, 1)
   assert.equal(rows()[0].status, 'sent')
-  assert.deepEqual(logs.lines('stw.email'), ['inner-monologue: emailed p2 to b***@example.com'])
+  assert.deepEqual(logs.lines('stw.email'), ['example-blog: emailed p2 to b***@example.com'])
 })
 
 test('a row whose subscriber vanished without cascade is dropped', async () => {

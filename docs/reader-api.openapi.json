@@ -12,8 +12,8 @@
   },
   "servers": [
     {
-      "url": "https://ap.nbaglivo.dev/reader/v1",
-      "description": "The Inner Monologue's spread-the-word instance"
+      "url": "https://ap.example.dev/reader/v1",
+      "description": "Example Blog's spread-the-word instance"
     },
     {
       "url": "http://localhost:8080/reader/v1",
@@ -405,7 +405,7 @@
         "required": true,
         "description": "The site's id from the spread-the-word config.",
         "schema": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
-        "example": "inner-monologue"
+        "example": "example-blog"
       },
       "Since": {
         "name": "since",

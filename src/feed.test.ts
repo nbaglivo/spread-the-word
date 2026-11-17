@@ -6,15 +6,15 @@ import { normalizeFeed, fetchFeed, FeedError } from './feed.ts'
 
 const NOW = new Date('2026-10-15T12:00:00Z')
 
-test('normalizes the Inner Monologue RSS feed', () => {
-  const entries = normalizeFeed(readFileSync(new URL('../test/fixtures/inner-monologue.xml', import.meta.url), 'utf-8'), NOW)
+test('normalizes an RSS feed with content:encoded', () => {
+  const entries = normalizeFeed(readFileSync(new URL('../test/fixtures/example-blog.xml', import.meta.url), 'utf-8'), NOW)
   assert.ok(entries.length >= 5)
-  const reaccion = entries.find((e) => e.url === 'https://innermonologue.nbaglivo.dev/writing/reaccion.html')
-  assert.ok(reaccion)
-  assert.equal(reaccion.id, 'https://innermonologue.nbaglivo.dev/writing/reaccion.html')
-  assert.equal(reaccion.title, 'Reaccion')
-  assert.match(reaccion.html, /<p>/)
-  assert.equal(reaccion.published.toISOString(), '2026-10-11T00:00:00.000Z')
+  const first = entries.find((e) => e.url === 'https://blog.example.dev/posts/first-light.html')
+  assert.ok(first)
+  assert.equal(first.id, 'https://blog.example.dev/posts/first-light.html')
+  assert.equal(first.title, 'First Light')
+  assert.match(first.html, /<p>/)
+  assert.equal(first.published.toISOString(), '2026-10-11T00:00:00.000Z')
   for (const e of entries) {
     assert.ok(e.url.startsWith('https://'))
     assert.ok(e.html.length > 0)

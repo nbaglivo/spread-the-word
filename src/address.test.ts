@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { normalizeEmail, isEmailAddress, maskEmail } from './address.ts'
 
 test('normalizeEmail trims and lowercases', () => {
-  assert.equal(normalizeEmail(' Nico@Example.COM '), 'nico@example.com')
+  assert.equal(normalizeEmail(' You@Example.COM '), 'you@example.com')
 })
 
 test('isEmailAddress accepts plain addresses', () => {
@@ -31,6 +31,6 @@ test('isEmailAddress allows exactly 254 characters', () => {
 })
 
 test('maskEmail hides all but the first character of the local part', () => {
-  assert.equal(maskEmail('nico@gmail.com'), 'n***@gmail.com')
+  assert.equal(maskEmail('you@gmail.com'), 'y***@gmail.com')
   assert.equal(maskEmail('n@x.dev'), 'n***@x.dev')
 })
