@@ -4,7 +4,7 @@
     "title": "spread-the-word reader API",
     "version": "1.0.0",
     "summary": "Read what the accounts a site follows have posted, and manage who the site follows.",
-    "description": "A small, private API for one reader (for example Coffee Companion) per site. Every request is scoped to one site and authenticated with that site's reader token. Responses are JSON. Timestamps are RFC 3339 in UTC with millisecond precision, for example 2026-10-16T06:12:03.000Z. Within /reader/v1, fields and enum values may be added; clients must ignore unknown fields and treat unknown enum values like the closest generic value (an unknown item type like Note, an unknown attachment kind like other). Removing or renaming a field, or changing its meaning, requires /reader/v2.",
+    "description": "Planned. A small, private API for one reader app per site. Every request is scoped to one site and authenticated with that site's reader token. Responses are JSON. Timestamps are RFC 3339 in UTC with millisecond precision, for example 2026-10-16T06:12:03.000Z. Within /reader/v1, fields and enum values may be added; clients must ignore unknown fields and treat unknown enum values like the closest generic value (an unknown item type like Note, an unknown attachment kind like other). Removing or renaming a field, or changing its meaning, requires /reader/v2.",
     "license": {
       "name": "MIT",
       "identifier": "MIT"

@@ -25,23 +25,21 @@ Design and diagrams: [`docs/design.html`](docs/design.html).
 
 ## Reading the fediverse (planned)
 
-v1 only publishes: your feed goes out to your followers. The reader API adds
-the other direction. Your site's account follows other fediverse accounts,
-spread-the-word keeps what they post and boost, and one private reader (Coffee
-Companion) pulls it over HTTP:
+Today spread-the-word only publishes: your feed goes out to your followers. A
+reader API is planned for the other direction: your site's account follows
+other fediverse accounts, spread-the-word keeps what they post and boost, and
+an app of yours (a reading page on your site, a feed reader, a small client)
+pulls it over HTTP:
 
 - `POST` / `DELETE /reader/v1/sites/{siteId}/following` to follow or unfollow
   by handle or actor URL
 - `GET /reader/v1/sites/{siteId}/items` to page through what arrived
 
-It serves posts from accounts you follow, not your own published posts. A blog
-appears only if it publishes over ActivityPub (another spread-the-word site, or
-WordPress with the ActivityPub plugin). Plain RSS feeds aren't fetched. The
-following is done by your blog's own account, so the accounts you follow see
-a follow from it.
-
-It's our own small API, not the Mastodon client API, so Mastodon apps can't
-read it. Contract: [`docs/reader-api.openapi.json`](docs/reader-api.openapi.json).
+The follows come from your site's own account, and only accounts that publish
+over ActivityPub can be followed (Mastodon, another spread-the-word site,
+WordPress with the ActivityPub plugin); plain RSS feeds aren't fetched. It's a
+small API of its own, not the Mastodon client API. Draft contract:
+[`docs/reader-api.openapi.json`](docs/reader-api.openapi.json).
 
 ## Run it
 
@@ -189,38 +187,14 @@ retries, so a mail server outage doesn't hold up syncs or federation.
 
 ## Watch what it does
 
-spread-the-word logs one JSON line per event: each sync and what it found, each
-follow and unfollow, each delivery and any follower it gave up on. With email
-on, it also logs subscribers joining and leaving and each email sent or failed
-(addresses are masked).
-`scripts/logs` reads them over SSH and prints them one short line each:
+spread-the-word logs one JSON line per event to stdout: each sync and what it
+found, each follow and unfollow, each delivery and any follower it gave up on.
+With email on, it also logs subscribers joining and leaving and each email sent
+or failed (addresses are masked). With the compose setup:
 
 ```bash
-export STW_SSH=root@203.0.113.7
-scripts/logs              # last 200 lines
-scripts/logs -f           # follow live
-scripts/logs --since 1h
+docker compose logs -f stw
 ```
-
-```
-12:43:48 synced example-blog: 1 new, 0 updated, 0 deleted
-12:43:49 sent Create creating-a-life → mastodon.social
-```
-
-`STW_SSH_KEY` picks an SSH key and `STW_DIR` the folder on the server
-(default `/opt/stw`).
-
-## List subscribers and followers
-
-`scripts/subscribers` prints each site's email subscribers (with their status
-and when they confirmed) and fediverse followers, read-only, over the same SSH
-settings:
-
-```bash
-scripts/subscribers
-```
-
-Its output contains subscribers' email addresses; keep it to yourself.
 
 ## Development
 
