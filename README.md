@@ -23,24 +23,6 @@ are ignored for now.
 
 Design and diagrams: [`docs/design.html`](docs/design.html).
 
-## Reading the fediverse (planned)
-
-Today spread-the-word only publishes: your feed goes out to your followers. A
-reader API is planned for the other direction: your site's account follows
-other fediverse accounts, spread-the-word keeps what they post and boost, and
-an app of yours (a reading page on your site, a feed reader, a small client)
-pulls it over HTTP:
-
-- `POST` / `DELETE /reader/v1/sites/{siteId}/following` to follow or unfollow
-  by handle or actor URL
-- `GET /reader/v1/sites/{siteId}/items` to page through what arrived
-
-The follows come from your site's own account, and only accounts that publish
-over ActivityPub can be followed (Mastodon, another spread-the-word site,
-WordPress with the ActivityPub plugin); plain RSS feeds aren't fetched. It's a
-small API of its own, not the Mastodon client API. Draft contract:
-[`docs/reader-api.openapi.json`](docs/reader-api.openapi.json).
-
 ## Run it
 
 1. Copy `stw.example.json` to `stw.json` and fill in one entry per
