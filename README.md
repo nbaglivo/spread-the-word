@@ -5,13 +5,16 @@
 
 # spread-the-word
 
-Spread the word when your site publishes something new, across the fediverse
+spread-the-word helps publishers spread their content. Each time your site
+publishes something new, it reaches the people who want it, on the fediverse
 and by email.
 
-spread-the-word is a small, self-hosted server that takes each new item in your
-site's feed to the people who want it. They can follow `@you@your-site.dev`
-from Mastodon and see it in their timeline, or subscribe by email and find it
-in their inbox. Your site stays static.
+Readers can follow `@you@your-site.dev` from Mastodon and see your posts in
+their timeline, or subscribe by email and find them in their inbox. You keep
+publishing a feed as you do today, and your site stays static.
+
+It is small and does only this: one container, one SQLite file, one JSON
+config. That keeps it easy to self-host.
 
 ## How it works
 
